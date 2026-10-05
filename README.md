@@ -26,7 +26,7 @@ chengzi/
 ## Prerequisites
 
 - Python 3.12+ and [uv](https://github.com/astral-sh/uv)
-- Node.js 20+
+- Node.js `^20.19.0` or `>=22.12.0`
 - PostgreSQL (local Postgres.app, Homebrew, or Docker)
 
 ## Quick start

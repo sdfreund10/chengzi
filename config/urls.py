@@ -8,5 +8,5 @@ urlpatterns = [
     path("api/", include("api.urls")),
     # SPA fallback: WhiteNoise serves real files from frontend/dist first;
     # anything else (client routes) gets index.html.
-    re_path(r"^.*$", spa, name="spa"),
+    re_path(r"^(?!api(?:/|$)).*$", spa, name="spa"),
 ]
