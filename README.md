@@ -37,7 +37,7 @@ chengzi/
 cp .env.example .env
 ```
 
-Defaults expect a local database named `chengzi` with user/password `chengzi`.
+Defaults expect local databases `chengzi` (dev) and `chengzi_test` (pytest), user/password `chengzi`.
 
 ### 2. Database
 
@@ -46,8 +46,11 @@ Defaults expect a local database named `chengzi` with user/password `chengzi`.
 ```bash
 createuser -s chengzi 2>/dev/null || true
 createdb -O chengzi chengzi 2>/dev/null || true
-psql -d postgres -c "ALTER USER chengzi WITH PASSWORD 'chengzi';"
+createdb -O chengzi chengzi_test 2>/dev/null || true
+psql -d postgres -c "ALTER USER chengzi WITH PASSWORD 'chengzi' CREATEDB;"
 ```
+
+Pytest uses `chengzi_test` (`POSTGRES_TEST_DB`) and reuses it across runs (`--reuse-db`). Recreate the schema with `uv run pytest --create-db` when migrations change.
 
 ### 3. Build frontend + run Django (same origin)
 

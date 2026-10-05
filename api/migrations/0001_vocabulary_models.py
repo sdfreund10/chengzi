@@ -6,9 +6,9 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    initial = True
 
     dependencies = [
-        ('api', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -58,9 +58,6 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'word_category',
             },
-        ),
-        migrations.DeleteModel(
-            name='Note',
         ),
         migrations.AddField(
             model_name='userword',

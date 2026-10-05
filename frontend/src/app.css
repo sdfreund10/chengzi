@@ -5,7 +5,6 @@
   --panel: #fffdf8;
   --line: #d8d0c2;
   --accent: #0f6b5c;
-  --accent-ink: #f7fffc;
   --error: #9b2c2c;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   color: var(--ink);
@@ -111,85 +110,6 @@ dd {
   font-weight: 600;
 }
 
-.note-form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.75rem;
-  margin: 1rem 0;
-  align-items: end;
-}
-
-label {
-  display: grid;
-  gap: 0.35rem;
-}
-
-label span {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-input {
-  width: 100%;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--ink);
-  padding: 0.7rem 0.8rem;
-  font: inherit;
-}
-
-button {
-  border: 0;
-  background: var(--accent);
-  color: var(--accent-ink);
-  padding: 0.75rem 1rem;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:hover {
-  filter: brightness(1.05);
-}
-
-.notes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.65rem;
-}
-
-.notes li {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--line);
-}
-
-.notes li:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-time,
-.muted {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
 .error {
   color: var(--error);
-}
-
-@media (max-width: 560px) {
-  .note-form {
-    grid-template-columns: 1fr;
-  }
-
-  .notes li {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
 }
