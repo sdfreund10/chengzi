@@ -84,6 +84,13 @@ Vite on [http://localhost:5173](http://localhost:5173) proxies `/api` to Django.
 ## Useful commands
 
 ```bash
+# Tests
+cd backend && uv run pytest
+
+# Lint / format
+cd backend && uv run ruff check .
+cd backend && uv run ruff format .
+
 # Django shell
 cd backend && uv run python manage.py shell
 
