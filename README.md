@@ -40,13 +40,7 @@ Defaults expect a local database named `chengzi` with user/password `chengzi`.
 
 ### 2. Database
 
-**Option A — Docker**
-
-```bash
-docker compose up -d
-```
-
-**Option B — local Postgres**
+**local Postgres**
 
 ```bash
 createuser -s chengzi 2>/dev/null || true
