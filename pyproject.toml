@@ -1,0 +1,55 @@
+[project]
+name = "chengzi"
+version = "0.1.0"
+description = "Django + Postgres API with Preact frontend"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.1.1",
+    "django-cors-headers>=4.9.0",
+    "djangorestframework>=3.18.1",
+    "psycopg[binary]>=3.3.6",
+    "python-dotenv>=1.2.4",
+    "whitenoise>=6.12.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.8,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-django>=4.14.0",
+    "ruff>=0.16.10",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["-ra", "--strict-markers", "--reuse-db"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["."]
+extend-exclude = ["**/migrations"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["api", "config"]
+
