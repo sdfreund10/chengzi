@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR.parent / ".env")
 load_dotenv(BASE_DIR / ".env")
 
 
@@ -128,7 +127,7 @@ USE_TZ = True
 # Built Preact assets live in frontend/dist and are served from the same origin
 # via WhiteNoise (WHITENOISE_ROOT). Django admin/static still use STATIC_*.
 
-FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

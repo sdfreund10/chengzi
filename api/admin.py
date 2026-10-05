@@ -13,7 +13,6 @@ class WordAdmin(admin.ModelAdmin):
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
-    filter_horizontal = ("words",)
 
 
 @admin.register(WordCategory)

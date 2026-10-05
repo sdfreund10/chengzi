@@ -15,9 +15,10 @@ Same-origin by default: Django + WhiteNoise serve the built SPA and `/api` toget
 
 ```
 chengzi/
-├── backend/          # Django project (`config`) + `api` app
+├── api/              # Django app
+├── config/           # Django project settings
+├── manage.py
 ├── frontend/         # Preact + Vite
-├── docker-compose.yml
 ├── .env.example
 └── README.md
 ```
@@ -52,7 +53,6 @@ psql -d postgres -c "ALTER USER chengzi WITH PASSWORD 'chengzi';"
 
 ```bash
 cd frontend && npm install && npm run build && cd ..
-cd backend
 uv sync
 uv run python manage.py migrate
 uv run python manage.py collectstatic --noinput
@@ -62,7 +62,6 @@ uv run python manage.py runserver
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000) — UI and API share one origin.
 
 - Health: `GET /api/health/`
-- Notes CRUD: `/api/notes/`
 
 ### 4. Frontend HMR (optional, local only)
 
@@ -79,17 +78,17 @@ Vite on [http://localhost:5173](http://localhost:5173) proxies `/api` to Django.
 
 ```bash
 # Tests
-cd backend && uv run pytest
+uv run pytest
 
 # Lint / format
-cd backend && uv run ruff check .
-cd backend && uv run ruff format .
+uv run ruff check .
+uv run ruff format .
 
 # Django shell
-cd backend && uv run python manage.py shell
+uv run python manage.py shell
 
 # Create a superuser
-cd backend && uv run python manage.py createsuperuser
+uv run python manage.py createsuperuser
 
 # Rebuild SPA after frontend changes (for Django-served mode)
 cd frontend && npm run build

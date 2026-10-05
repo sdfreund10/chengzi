@@ -164,9 +164,13 @@ node_modules/
 frontend/dist/
 *.local
 
+# Ruff / pytest
+.ruff_cache/
+.pytest_cache/
+
 # Django
-backend/staticfiles/
-backend/media/
+staticfiles/
+media/
 
 # Spyder project settings
 .spyderproject
