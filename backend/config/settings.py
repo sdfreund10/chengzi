@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -123,9 +124,27 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
+#
+# Built Preact assets live in frontend/dist and are served from the same origin
+# via WhiteNoise (WHITENOISE_ROOT). Django admin/static still use STATIC_*.
+
+FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Serve Vite build output (index.html, /assets/*, favicon, etc.) at site root.
+WHITENOISE_ROOT = FRONTEND_DIST
+WHITENOISE_INDEX_FILE = True
 
 
 # Default primary key field type

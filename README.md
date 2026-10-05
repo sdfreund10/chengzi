@@ -2,11 +2,14 @@
 
 Django + PostgreSQL API with a [Preact](https://preactjs.com) (Vite) frontend.
 
+Same-origin by default: Django + WhiteNoise serve the built SPA and `/api` together so session cookies work without CORS.
+
 ## Stack
 
 | Layer | Tech |
 | --- | --- |
 | API | Django 6 + Django REST Framework |
+| Static / SPA | WhiteNoise serving `frontend/dist` |
 | DB | PostgreSQL |
 | UI | Preact + TypeScript + Vite |
 
@@ -43,40 +46,40 @@ Defaults expect a local database named `chengzi` with user/password `chengzi`.
 docker compose up -d
 ```
 
-**Option B — local Postgres** (already set up on this machine if you followed the scaffold)
+**Option B — local Postgres**
 
 ```bash
-# create role + database if needed
 createuser -s chengzi 2>/dev/null || true
 createdb -O chengzi chengzi 2>/dev/null || true
 psql -d postgres -c "ALTER USER chengzi WITH PASSWORD 'chengzi';"
 ```
 
-### 3. Backend
+### 3. Build frontend + run Django (same origin)
 
 ```bash
+cd frontend && npm install && npm run build && cd ..
 cd backend
 uv sync
 uv run python manage.py migrate
+uv run python manage.py collectstatic --noinput
 uv run python manage.py runserver
 ```
 
-API base: [http://127.0.0.1:8000/api/](http://127.0.0.1:8000/api/)
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000) — UI and API share one origin.
 
 - Health: `GET /api/health/`
 - Notes CRUD: `/api/notes/`
 
-### 4. Frontend
+### 4. Frontend HMR (optional, local only)
+
+Keep Django running on `:8000`, then:
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-App: [http://localhost:5173](http://localhost:5173)
-
-Vite proxies `/api` to Django (`http://127.0.0.1:8000`) during development.
+Vite on [http://localhost:5173](http://localhost:5173) proxies `/api` to Django. Use this for day-to-day UI work; use the same-origin Django server when testing session cookies.
 
 ## Useful commands
 
@@ -87,6 +90,6 @@ cd backend && uv run python manage.py shell
 # Create a superuser
 cd backend && uv run python manage.py createsuperuser
 
-# Production-ish frontend build
+# Rebuild SPA after frontend changes (for Django-served mode)
 cd frontend && npm run build
 ```
