@@ -111,7 +111,7 @@ sudo cp /var/www/juzi/deploy/juzi.service /etc/systemd/system/juzi.service
 sudo systemctl daemon-reload
 
 sudo cp /var/www/juzi/deploy/nginx-juzi.conf /etc/nginx/sites-available/juzi
-sudo sed -i 's/YOUR_DOMAIN/example.com/g' /etc/nginx/sites-available/juzi   # use your real domain
+sudo sed -i 's/YOUR_DOMAIN/juzi.sfreund.tools/g' /etc/nginx/sites-available/juzi   # use your real domain
 sudo ln -sf /etc/nginx/sites-available/juzi /etc/nginx/sites-enabled/juzi
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
