@@ -5,9 +5,11 @@ description = "Django + Postgres API with Preact frontend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "dj-database-url>=3.1.2",
     "django>=6.1.1",
     "django-cors-headers>=4.9.0",
     "djangorestframework>=3.18.1",
+    "gunicorn>=26.2.0",
     "psycopg[binary]>=3.3.6",
     "python-dotenv>=1.2.4",
     "whitenoise>=6.12.0",
