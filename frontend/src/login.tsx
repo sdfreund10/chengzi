@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { ApiError, login, type AuthUser } from './api'
 
 type LoginProps = {
@@ -11,6 +11,11 @@ export function Login({ onSuccess, bootError = null }: LoginProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const emailRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    emailRef.current?.focus()
+  }, [])
 
   async function onSubmit(event: Event) {
     event.preventDefault()
@@ -30,12 +35,14 @@ export function Login({ onSuccess, bootError = null }: LoginProps) {
     }
   }
 
+  const banner = error ?? bootError
+
   return (
     <main class="app">
       <header>
         <p class="eyebrow">juzi</p>
         <h1>Sign in</h1>
-        <p class="lede">Session login for your study account.</p>
+        <p class="lede">Sign in to continue studying.</p>
       </header>
 
       <section class="panel">
@@ -43,6 +50,7 @@ export function Login({ onSuccess, bootError = null }: LoginProps) {
           <label>
             <span>Email</span>
             <input
+              ref={emailRef}
               type="email"
               name="email"
               autocomplete="username"
@@ -62,8 +70,12 @@ export function Login({ onSuccess, bootError = null }: LoginProps) {
               onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
             />
           </label>
-          {(error || bootError) && <p class="error">{error ?? bootError}</p>}
-          <button type="submit" disabled={submitting}>
+          {banner && (
+            <p class="error" role="alert" aria-live="polite">
+              {banner}
+            </p>
+          )}
+          <button type="submit" class="btn" disabled={submitting}>
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>

@@ -39,7 +39,7 @@ juzi/
 cp .env.example .env
 ```
 
-Defaults expect `DATABASE_URL=postgres://juzi:juzi@localhost:5432/juzi` and pytest DB `juzi_test`.
+Defaults expect `DATABASE_URL=postgres://juzi:juzi@localhost:5432/juzi_development` and pytest DB `juzi_test`.
 
 ### 2. Database
 
@@ -47,7 +47,7 @@ Defaults expect `DATABASE_URL=postgres://juzi:juzi@localhost:5432/juzi` and pyte
 
 ```bash
 createuser -s juzi 2>/dev/null || true
-createdb -O juzi juzi 2>/dev/null || true
+createdb -O juzi juzi_development 2>/dev/null || true
 createdb -O juzi juzi_test 2>/dev/null || true
 psql -d postgres -c "ALTER USER juzi WITH PASSWORD 'juzi' CREATEDB;"
 ```
@@ -60,12 +60,12 @@ Pytest uses `juzi_test` (`POSTGRES_TEST_DB`) and reuses it across runs (`--reuse
 cd frontend && npm install && npm run build && cd ..
 uv sync
 uv run python manage.py migrate
-uv run python manage.py createsuperuser   # once: use email as username + set email
+uv run python manage.py createsuperuser   # once: use the same email for Username and Email
 uv run python manage.py collectstatic --noinput
 uv run python manage.py runserver
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000) — UI and API share one origin. Create the second study account in `/admin/` (Users → Add). For login to work, set both **Username** and **Email** to the same address (the app signs in by email).
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000) — UI and API share one origin. Create additional study accounts in `/admin/` (Users → Add); the admin form treats username as email and writes both fields.
 
 - Health: `GET /api/health/`
 - Auth: `GET /api/auth/me/`, `POST /api/auth/login/`, `POST /api/auth/logout/` (email + password; session cookie)
