@@ -1,1 +1,6 @@
-# Serializers will land with the API thin-slice issues.
+from rest_framework import serializers
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(trim_whitespace=False, style={"input_type": "password"})

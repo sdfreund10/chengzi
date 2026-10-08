@@ -22,13 +22,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: chengzi
-          POSTGRES_USER: chengzi
-          POSTGRES_PASSWORD: chengzi
+          POSTGRES_DB: juzi
+          POSTGRES_USER: juzi
+          POSTGRES_PASSWORD: juzi
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U chengzi -d chengzi"
+          --health-cmd "pg_isready -U juzi -d juzi"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -37,8 +37,8 @@ jobs:
       DJANGO_SECRET_KEY: ci-only-not-for-production
       DJANGO_DEBUG: "true"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
-      DATABASE_URL: postgres://chengzi:chengzi@localhost:5432/chengzi
-      POSTGRES_TEST_DB: chengzi_test
+      DATABASE_URL: postgres://juzi:juzi@localhost:5432/juzi
+      POSTGRES_TEST_DB: juzi_test
 
     steps:
       - name: Checkout

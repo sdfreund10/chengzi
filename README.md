@@ -39,20 +39,20 @@ juzi/
 cp .env.example .env
 ```
 
-Defaults expect `DATABASE_URL=postgres://chengzi:chengzi@localhost:5432/chengzi` and pytest DB `chengzi_test`.
+Defaults expect `DATABASE_URL=postgres://juzi:juzi@localhost:5432/juzi` and pytest DB `juzi_test`.
 
 ### 2. Database
 
 **local Postgres**
 
 ```bash
-createuser -s chengzi 2>/dev/null || true
-createdb -O chengzi chengzi 2>/dev/null || true
-createdb -O chengzi chengzi_test 2>/dev/null || true
-psql -d postgres -c "ALTER USER chengzi WITH PASSWORD 'chengzi' CREATEDB;"
+createuser -s juzi 2>/dev/null || true
+createdb -O juzi juzi 2>/dev/null || true
+createdb -O juzi juzi_test 2>/dev/null || true
+psql -d postgres -c "ALTER USER juzi WITH PASSWORD 'juzi' CREATEDB;"
 ```
 
-Pytest uses `chengzi_test` (`POSTGRES_TEST_DB`) and reuses it across runs (`--reuse-db`). Recreate the schema with `uv run pytest --create-db` when migrations change.
+Pytest uses `juzi_test` (`POSTGRES_TEST_DB`) and reuses it across runs (`--reuse-db`). Recreate the schema with `uv run pytest --create-db` when migrations change.
 
 ### 3. Build frontend + run Django (same origin)
 
@@ -60,13 +60,15 @@ Pytest uses `chengzi_test` (`POSTGRES_TEST_DB`) and reuses it across runs (`--re
 cd frontend && npm install && npm run build && cd ..
 uv sync
 uv run python manage.py migrate
+uv run python manage.py createsuperuser   # once: use email as username + set email
 uv run python manage.py collectstatic --noinput
 uv run python manage.py runserver
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000) — UI and API share one origin.
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000) — UI and API share one origin. Create the second study account in `/admin/` (Users → Add). For login to work, set both **Username** and **Email** to the same address (the app signs in by email).
 
 - Health: `GET /api/health/`
+- Auth: `GET /api/auth/me/`, `POST /api/auth/login/`, `POST /api/auth/logout/` (email + password; session cookie)
 
 ### 4. Frontend HMR (optional, local only)
 
@@ -98,7 +100,7 @@ uv run ruff format .
 # Django shell
 uv run python manage.py shell
 
-# Create a superuser
+# Create a superuser, then add the second account in /admin/
 uv run python manage.py createsuperuser
 
 # Rebuild SPA after frontend changes (for Django-served mode)

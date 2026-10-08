@@ -1,70 +1,76 @@
 import { useEffect, useState } from 'preact/hooks'
 import './app.css'
+import { ApiError, fetchMe, type AuthUser } from './api'
+import { Decks } from './decks'
+import { Login } from './login'
 
-type Health = {
-  status: string
-  service: string
-  database: string
-}
+type Screen = 'loading' | 'login' | 'decks'
 
 export function App() {
-  const [health, setHealth] = useState<Health | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  async function load() {
-    setError(null)
-    try {
-      const healthRes = await fetch('/api/health/')
-
-      if (!healthRes.ok) {
-        throw new Error('API request failed')
-      }
-
-      setHealth(await healthRes.json())
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reach API')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [screen, setScreen] = useState<Screen>('loading')
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [bootError, setBootError] = useState<string | null>(null)
 
   useEffect(() => {
-    void load()
+    let cancelled = false
+
+    async function boot() {
+      try {
+        const me = await fetchMe()
+        if (cancelled) return
+        if (me.authenticated) {
+          setUser(me)
+          setScreen('decks')
+        } else {
+          setUser(null)
+          setScreen('login')
+        }
+      } catch (err) {
+        if (cancelled) return
+        if (err instanceof ApiError && err.status === 401) {
+          setUser(null)
+          setScreen('login')
+          return
+        }
+        setBootError(err instanceof Error ? err.message : 'Failed to reach API')
+        setScreen('login')
+      }
+    }
+
+    void boot()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  return (
-    <main class="app">
-      <header>
-        <p class="eyebrow">chengzi</p>
-        <h1>Django + Postgres + Preact</h1>
-        <p class="lede">
-          A minimal full-stack scaffold. The UI talks to Django REST over{' '}
-          <code>/api</code>, proxied by Vite in development.
-        </p>
-      </header>
+  if (screen === 'loading') {
+    return (
+      <main class="app">
+        <p class="muted">Loading…</p>
+      </main>
+    )
+  }
 
-      <section class="panel">
-        <h2>API health</h2>
-        {loading && <p>Checking…</p>}
-        {error && <p class="error">{error}</p>}
-        {health && !error && (
-          <dl>
-            <div>
-              <dt>status</dt>
-              <dd>{health.status}</dd>
-            </div>
-            <div>
-              <dt>service</dt>
-              <dd>{health.service}</dd>
-            </div>
-            <div>
-              <dt>database</dt>
-              <dd>{health.database}</dd>
-            </div>
-          </dl>
-        )}
-      </section>
-    </main>
+  if (screen === 'login' || !user) {
+    return (
+      <Login
+        bootError={bootError}
+        onSuccess={(next) => {
+          setBootError(null)
+          setUser(next)
+          setScreen('decks')
+        }}
+      />
+    )
+  }
+
+  return (
+    <Decks
+      user={user}
+      onSignedOut={() => {
+        setUser(null)
+        setScreen('login')
+      }}
+    />
   )
 }

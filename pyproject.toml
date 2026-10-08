@@ -1,5 +1,5 @@
 [project]
-name = "chengzi"
+name = "juzi"
 version = "0.1.0"
 description = "Django + Postgres API with Preact frontend"
 readme = "README.md"

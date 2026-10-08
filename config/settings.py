@@ -85,13 +85,13 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default="postgres://chengzi:chengzi@localhost:5432/chengzi",
+        default="postgres://juzi:juzi@localhost:5432/juzi",
         conn_max_age=600,
         engine="django.db.backends.postgresql",
     )
 }
 DATABASES["default"]["TEST"] = {
-    "NAME": os.getenv("POSTGRES_TEST_DB", "chengzi_test"),
+    "NAME": os.getenv("POSTGRES_TEST_DB", "juzi_test"),
 }
 
 
@@ -160,16 +160,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Django REST Framework
 
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
     ],
+    "EXCEPTION_HANDLER": "api.exceptions.exception_handler",
 }
 
 
-# CORS — allow the Vite/Preact dev server
+# CORS — allow the Vite/Preact dev server (credentials for session cookies)
 
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
@@ -179,6 +186,7 @@ CORS_ALLOWED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Production hardening (behind nginx TLS termination)

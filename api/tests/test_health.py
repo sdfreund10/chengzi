@@ -12,6 +12,6 @@ def test_health_endpoint() -> None:
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "status": "ok",
-        "service": "chengzi",
+        "service": "juzi",
         "database": "connected",
     }
