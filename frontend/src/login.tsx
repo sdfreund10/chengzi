@@ -40,46 +40,44 @@ export function Login({ onSuccess, bootError = null }: LoginProps) {
   return (
     <main class="app">
       <header>
-        <p class="eyebrow">juzi</p>
+        <p class="brand">juzi</p>
         <h1>Sign in</h1>
         <p class="lede">Sign in to continue studying.</p>
       </header>
 
-      <section class="panel">
-        <form class="login-form" onSubmit={onSubmit}>
-          <label>
-            <span>Email</span>
-            <input
-              ref={emailRef}
-              type="email"
-              name="email"
-              autocomplete="username"
-              required
-              value={email}
-              onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-            />
-          </label>
-          <label>
-            <span>Password</span>
-            <input
-              type="password"
-              name="password"
-              autocomplete="current-password"
-              required
-              value={password}
-              onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-            />
-          </label>
-          {banner && (
-            <p class="error" role="alert" aria-live="polite">
-              {banner}
-            </p>
-          )}
-          <button type="submit" class="btn" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-      </section>
+      <form class="login-form" onSubmit={onSubmit}>
+        <label>
+          <span>Email</span>
+          <input
+            ref={emailRef}
+            type="email"
+            name="email"
+            autocomplete="username"
+            required
+            value={email}
+            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            value={password}
+            onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        {banner && (
+          <p class="error" role="alert" aria-live="polite">
+            {banner}
+          </p>
+        )}
+        <button type="submit" class="btn" disabled={submitting}>
+          {submitting ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
     </main>
   )
 }

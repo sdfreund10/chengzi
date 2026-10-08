@@ -31,9 +31,9 @@ export function Decks({ user, onSignedOut }: DecksProps) {
     <main class="app">
       <header class="app-header">
         <div>
-          <p class="eyebrow">juzi</p>
-          <h1>Decks</h1>
-          <p class="lede">Pick a deck to practice. Deck list arrives with the next slice.</p>
+          <p class="brand">juzi</p>
+          <h1>Choose a deck</h1>
+          <p class="lede">Deck list arrives with the next slice.</p>
         </div>
         <div class="session">
           <p class="session-email">{user.email}</p>
@@ -53,9 +53,33 @@ export function Decks({ user, onSignedOut }: DecksProps) {
         </div>
       </header>
 
-      <section class="panel">
-        <h2>Coming soon</h2>
-        <p class="muted">Your decks will show up here once the deck-picker API lands.</p>
+      <section class="list" aria-label="Decks">
+        <div class="row">
+          <span class="row-body">
+            <span class="row-title">Coming soon</span>
+            <span class="row-meta">Your decks will show up here once the deck-picker API lands.</span>
+          </span>
+          <span class="badge none">None due</span>
+        </div>
+      </section>
+
+      <section class="theme-preview" aria-label="Theme preview">
+        <div class="theme-preview-top">
+          <span class="chip">Pinyin to English</span>
+          <span class="muted">1 / 3</span>
+        </div>
+        <p class="prompt zh pinyin">túshūguǎn</p>
+        <p class="hint">Tap anywhere to reveal</p>
+        <div class="zones" aria-hidden="true">
+          <div class="zone hard">
+            Hard
+            <small>back soon</small>
+          </div>
+          <div class="zone easy">
+            Easy
+            <small>later</small>
+          </div>
+        </div>
       </section>
     </main>
   )
