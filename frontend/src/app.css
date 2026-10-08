@@ -140,6 +140,12 @@ dd {
   font-size: 0.85rem;
 }
 
+.session-error {
+  margin: 0;
+  text-align: right;
+  max-width: 16rem;
+}
+
 .login-form {
   display: grid;
   gap: 1rem;
@@ -170,7 +176,7 @@ dd {
   outline-offset: 1px;
 }
 
-button {
+.btn {
   appearance: none;
   border: 1px solid var(--accent);
   background: var(--accent);
@@ -181,17 +187,17 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
+.btn:disabled {
   opacity: 0.65;
   cursor: wait;
 }
 
-button.ghost {
+.btn.ghost {
   background: transparent;
   color: var(--accent);
 }
 
-button:focus-visible {
+.btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 45%, white);
   outline-offset: 2px;
 }
