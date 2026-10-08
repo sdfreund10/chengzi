@@ -66,7 +66,7 @@ jobs:
         run: uv run pytest
 
   frontend:
-    name: Frontend typecheck & build
+    name: Frontend test, typecheck & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,6 +85,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Vitest
+        run: npm test
 
       - name: Typecheck & build
         run: npm run build
