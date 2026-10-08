@@ -92,7 +92,7 @@ Pushes to `main` build the SPA in GitHub Actions, rsync `frontend/dist` to the d
 ```bash
 # Tests
 uv run pytest
-cd frontend && npm test
+npm --prefix frontend test
 
 # Lint / format
 uv run ruff check .
