@@ -37,7 +37,7 @@ jobs:
       DJANGO_SECRET_KEY: ci-only-not-for-production
       DJANGO_DEBUG: "true"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
-      DATABASE_URL: postgres://juzi:juzi@localhost:5432/juzi
+      DATABASE_URL: postgres://juzi:juzi@localhost:5432/juzi_development
       POSTGRES_TEST_DB: juzi_test
 
     steps:

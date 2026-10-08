@@ -30,6 +30,39 @@ type RequestOptions = {
   body?: unknown
 }
 
+function messageFromErrorBody(data: unknown): string {
+  if (!data || typeof data !== 'object') {
+    return 'Request failed'
+  }
+
+  const body = data as Record<string, unknown>
+  const detail = body.detail
+
+  if (typeof detail === 'string') {
+    return detail
+  }
+
+  if (Array.isArray(detail)) {
+    const parts = detail.filter((item): item is string => typeof item === 'string')
+    if (parts.length > 0) {
+      return parts.join(' ')
+    }
+  }
+
+  const fieldMessages: string[] = []
+  for (const [key, value] of Object.entries(body)) {
+    if (key === 'detail') continue
+    if (Array.isArray(value)) {
+      const first = value.find((item): item is string => typeof item === 'string')
+      if (first) fieldMessages.push(first)
+    } else if (typeof value === 'string') {
+      fieldMessages.push(value)
+    }
+  }
+
+  return fieldMessages.length > 0 ? fieldMessages.join(' ') : 'Request failed'
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET'
   const headers: Record<string, string> = {
@@ -57,10 +90,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (!response.ok) {
     let message = 'Request failed'
     try {
-      const data = (await response.json()) as { detail?: string }
-      if (typeof data.detail === 'string') {
-        message = data.detail
-      }
+      message = messageFromErrorBody(await response.json())
     } catch {
       // ignore non-JSON error bodies
     }

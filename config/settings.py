@@ -85,7 +85,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default="postgres://juzi:juzi@localhost:5432/juzi",
+        default="postgres://juzi:juzi@localhost:5432/juzi_development",
         conn_max_age=600,
         engine="django.db.backends.postgresql",
     )

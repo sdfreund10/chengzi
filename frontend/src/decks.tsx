@@ -37,16 +37,25 @@ export function Decks({ user, onSignedOut }: DecksProps) {
         </div>
         <div class="session">
           <p class="session-email">{user.email}</p>
-          <button type="button" class="ghost" onClick={onSignOut} disabled={signingOut}>
+          <button
+            type="button"
+            class="btn ghost"
+            onClick={onSignOut}
+            disabled={signingOut}
+          >
             {signingOut ? 'Signing out…' : 'Sign out'}
           </button>
+          {error && (
+            <p class="error session-error" role="alert" aria-live="polite">
+              {error}
+            </p>
+          )}
         </div>
       </header>
 
       <section class="panel">
         <h2>Coming soon</h2>
         <p class="muted">Your decks will show up here once the deck-picker API lands.</p>
-        {error && <p class="error">{error}</p>}
       </section>
     </main>
   )
