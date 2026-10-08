@@ -39,7 +39,7 @@ No Node.js on the droplet — Vite builds run in CI. Install `uv` after creating
 Use a normal home for SSH keys; keep the app tree under `/var/www/juzi`.
 
 ```bash
-sudo adduser --system --group --home /home/juzi juzi
+sudo adduser --system --group --home /home/juzi --shell /bin/bash juzi
 sudo mkdir -p /var/www/juzi
 sudo chown juzi:juzi /var/www/juzi
 ```
@@ -128,6 +128,8 @@ sudo systemctl reload nginx
 ### 8. First release + TLS
 
 Easiest: configure GitHub secrets (below), push to `main`, and let Actions sync the SPA and run `deploy/deploy.sh`.
+
+After the first release, run `sudo systemctl enable --now juzi` and `sudo certbot --nginx -d YOUR_DOMAIN` on the droplet. These one-time bootstrap steps are required for both the Actions and manual paths.
 
 Manual (from a machine that can build the frontend):
 
