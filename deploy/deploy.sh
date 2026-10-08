@@ -14,6 +14,8 @@ cd "$APP_DIR"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
+  # Same file as systemd EnvironmentFile= (no shell expansion). Quote values
+  # that contain $ or other shell metacharacters so source and systemd agree.
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a

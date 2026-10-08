@@ -117,6 +117,9 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -H "${{ secrets.DROPLET_HOST }}" >> ~/.ssh/known_hosts
 
+      # Future: stage dist separately and swap after restart. With DEBUG=false,
+      # WhiteNoise indexes at worker startup; rsync --delete here can 404 hashed
+      # assets until gunicorn restarts (or leave a mismatch if deploy fails).
       - name: Sync SPA to droplet
         run: |
           rsync -az --delete \

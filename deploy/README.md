@@ -75,13 +75,19 @@ Use a local peer/password URL in the env file below (`localhost`). Do not expose
 
 ### 5. Environment file
 
+`/etc/juzi.env` is both a systemd `EnvironmentFile` (no shell expansion) and
+sourced by `deploy/deploy.sh`. Write it in a form both accept: plain
+`KEY=value` lines, and **single-quote** any value that contains `$` or other
+shell metacharacters (e.g. `DJANGO_SECRET_KEY='prefix$suffix'`). Unquoted `$`
+can abort deploy under `set -u` while Gunicorn still gets the literal string.
+
 ```bash
 sudo tee /etc/juzi.env >/dev/null <<'EOF'
-DJANGO_SECRET_KEY=replace-with-a-long-random-string
+DJANGO_SECRET_KEY='replace-with-a-long-random-string'
 DJANGO_DEBUG=false
 DJANGO_ALLOWED_HOSTS=YOUR_DOMAIN
 CSRF_TRUSTED_ORIGINS=https://YOUR_DOMAIN
-DATABASE_URL=postgres://juzi:choose-a-strong-password@localhost:5432/juzi
+DATABASE_URL='postgres://juzi:choose-a-strong-password@localhost:5432/juzi'
 EOF
 sudo chown root:juzi /etc/juzi.env
 sudo chmod 640 /etc/juzi.env
@@ -135,6 +141,8 @@ Manual (from a machine that can build the frontend):
 
 ```bash
 cd frontend && npm ci && npm run build && cd ..
+# Same caveat as CI: --delete before restart can briefly 404 hashed SPA assets
+# under WhiteNoise (DEBUG=false). Future: stage + swap after workers restart.
 rsync -az --delete frontend/dist/ juzi@YOUR_DROPLET:/var/www/juzi/frontend/dist/
 ssh juzi@YOUR_DROPLET 'bash /var/www/juzi/deploy/deploy.sh'
 sudo systemctl enable --now juzi   # on the droplet, if not already
