@@ -8,5 +8,6 @@ urlpatterns = [
     path("api/", include("api.urls")),
     # SPA fallback: WhiteNoise serves real files from frontend/dist first;
     # anything else (client routes) gets index.html.
-    re_path(r"^(?!api(?:/|$)).*$", spa, name="spa"),
+    # Exclude api/ and admin/ so APPEND_SLASH can redirect /admin → /admin/.
+    re_path(r"^(?!(?:api|admin)(?:/|$)).*$", spa, name="spa"),
 ]

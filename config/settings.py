@@ -137,12 +137,20 @@ FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Manifest storage needs collectstatic; skip it in DEBUG so tests/CI can render
+# admin without a staticfiles/ tree.
+_STATICFILES_BACKEND = (
+    "django.contrib.staticfiles.storage.StaticFilesStorage"
+    if DEBUG
+    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": _STATICFILES_BACKEND,
     },
 }
 
