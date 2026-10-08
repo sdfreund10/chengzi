@@ -1,4 +1,4 @@
-# chengzi
+# juzi
 
 Django + PostgreSQL API with a [Preact](https://preactjs.com) (Vite) frontend.
 
@@ -12,11 +12,13 @@ Same-origin by default: Django + WhiteNoise serve the built SPA and `/api` toget
 | Static / SPA | WhiteNoise serving `frontend/dist` |
 | DB | PostgreSQL |
 | UI | Preact + TypeScript + Vite |
+| Prod | gunicorn + nginx + certbot on a DO droplet |
 
 ```
-chengzi/
+juzi/
 ├── api/              # Django app
 ├── config/           # Django project settings
+├── deploy/           # systemd, nginx, release script, runbook
 ├── manage.py
 ├── frontend/         # Preact + Vite
 ├── .env.example
@@ -37,7 +39,7 @@ chengzi/
 cp .env.example .env
 ```
 
-Defaults expect local databases `chengzi` (dev) and `chengzi_test` (pytest), user/password `chengzi`.
+Defaults expect `DATABASE_URL=postgres://chengzi:chengzi@localhost:5432/chengzi` and pytest DB `chengzi_test`.
 
 ### 2. Database
 
@@ -76,6 +78,12 @@ npm run dev
 ```
 
 Vite on [http://localhost:5173](http://localhost:5173) proxies `/api` to Django. Use this for day-to-day UI work; use the same-origin Django server when testing session cookies.
+
+## Production
+
+Bare-metal DigitalOcean droplet (Postgres on-box, nginx + certbot, gunicorn). See **[deploy/README.md](deploy/README.md)** for bootstrap and CD secrets.
+
+Pushes to `main` build the SPA in GitHub Actions, rsync `frontend/dist` to the droplet, then run `deploy/deploy.sh`. The droplet does not need Node.js.
 
 ## Useful commands
 

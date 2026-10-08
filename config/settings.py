@@ -5,6 +5,7 @@ Django settings for config project.
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,6 +27,10 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if host.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()
 ]
 
 
@@ -79,17 +84,14 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "chengzi"),
-        "USER": os.getenv("POSTGRES_USER", "chengzi"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "chengzi"),
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        "TEST": {
-            "NAME": os.getenv("POSTGRES_TEST_DB", "chengzi_test"),
-        },
-    }
+    "default": dj_database_url.config(
+        default="postgres://chengzi:chengzi@localhost:5432/chengzi",
+        conn_max_age=600,
+        engine="django.db.backends.postgresql",
+    )
+}
+DATABASES["default"]["TEST"] = {
+    "NAME": os.getenv("POSTGRES_TEST_DB", "chengzi_test"),
 }
 
 
@@ -177,3 +179,15 @@ CORS_ALLOWED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+
+
+# Production hardening (behind nginx TLS termination)
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True

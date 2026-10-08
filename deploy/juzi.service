@@ -1,0 +1,24 @@
+[Unit]
+Description=juzi gunicorn
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=juzi
+Group=juzi
+WorkingDirectory=/var/www/juzi
+EnvironmentFile=/etc/juzi.env
+ExecStart=/var/www/juzi/.venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    --access-logfile - \
+    --error-logfile - \
+    config.wsgi:application
+KillMode=mixed
+TimeoutStopSec=5
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
