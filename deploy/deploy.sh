@@ -40,7 +40,8 @@ echo "==> Collecting static files"
 uv run python manage.py collectstatic --noinput
 
 echo "==> Restarting gunicorn"
-sudo systemctl restart juzi
+# Prefer absolute path so this matches /etc/sudoers.d/juzi (NOPASSWD).
+sudo "$(command -v systemctl)" restart juzi
 
 echo "==> Health check"
 sleep 1

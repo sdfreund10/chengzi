@@ -28,17 +28,13 @@ Replace `YOUR_DOMAIN` everywhere with the production hostname.
 ```bash
 sudo apt update
 sudo apt install -y \
-  build-essential curl git nginx postgresql postgresql-contrib \
+  build-essential curl git nginx postgresql postgresql-contrib rsync \
   python3.12 python3.12-venv python3-certbot-nginx
-
-# uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# ensure uv is on PATH for the juzi user (e.g. /usr/local/bin or ~/.local/bin)
 ```
 
-No Node.js on the droplet — Vite builds run in CI.
+No Node.js on the droplet — Vite builds run in CI. Install `uv` after creating the `juzi` user (next section).
 
-### 3. App user and directories
+### 3. App user, uv, and directories
 
 Use a normal home for SSH keys; keep the app tree under `/var/www/juzi`.
 
@@ -48,12 +44,23 @@ sudo mkdir -p /var/www/juzi
 sudo chown juzi:juzi /var/www/juzi
 ```
 
+Install `uv` as `juzi` (not root). A root install lands in `/root/.local/bin` and is invisible to the app user / CI SSH sessions:
+
+```bash
+sudo -u juzi -H bash -lc 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+# Non-interactive SSH often has a minimal PATH — put uv on the system path:
+sudo ln -sf /home/juzi/.local/bin/uv /usr/local/bin/uv
+sudo -u juzi -H bash -lc 'command -v uv && uv --version'
+```
+
 Allow passwordless restart of the app unit (needed by `deploy/deploy.sh` and GitHub Actions):
 
 ```bash
-echo 'juzi ALL=(root) NOPASSWD: /bin/systemctl restart juzi, /bin/systemctl status juzi' \
+# Use the real systemctl path (Ubuntu: usually /usr/bin/systemctl, not /bin/...).
+echo "juzi ALL=(root) NOPASSWD: $(command -v systemctl) restart juzi, $(command -v systemctl) status juzi" \
   | sudo tee /etc/sudoers.d/juzi
 sudo chmod 440 /etc/sudoers.d/juzi
+sudo -u juzi sudo -n systemctl status juzi   # must work with no password prompt
 ```
 
 ### 4. PostgreSQL
