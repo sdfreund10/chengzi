@@ -1,239 +1,163 @@
 # Product Brief: Chinese Flashcard Trainer
 
+> **Note:** This is an initial guideline, not a firm requirement. The brief should guide the high-level product and its outcomes, but deviations are expected over time as the app is built and used.
+
 ## 1. Overview
 
-A small, private web app for two people to drill Traditional Chinese vocabulary. It is optimized for speed and low friction: open it, pick a category, tap through cards, and let the scheduler decide what comes next. It is built for personal use, so it skips public signup, onboarding, social features, and monetization.
+A small, private web app for two people to drill Traditional Chinese vocabulary. It is optimized for speed and low friction: open it, pick a deck, tap through cards, and let the scheduler decide which words show up. It is built for personal use, so it skips public signup, onboarding, social features, and monetization.
+
+Interactive mockups of the v1 screens live in `chinese-flashcards-mockups.html`.
 
 ## 2. Goals and non-goals
 
 **Goals**
-
-- Make a daily 5-10 minute practice session effortless, ideally one-handed on a phone.
-- Surface the right cards at the right time using spaced repetition.
+- Make a regular practice session effortless, ideally one-handed on a phone.
+- Review one deck at a time (roughly 100 words, around 10 to 20 seconds per card).
 - Let each person progress independently on one shared word list.
-- Introduce difficulty gradually: each word unlocks harder study modes only once it is known well.
+- Introduce difficulty gradually: a word unlocks harder study modes only once it is known well.
 
 **Non-goals (v1)**
-
-- Public signup, password reset flows, multi-tenant concerns
+- Public signup, password reset, multi-tenant concerns
 - Audio, handwriting, stroke order
 - Gamification (streaks, leaderboards)
 - Per-user word lists
 - Simplified characters
-- Native apps (a mobile-friendly web app is enough)
+- Offline study and native apps
 
-## 3. Core concepts and data model
+## 3. Tech stack
+
+- **Backend:** Python with Django and a typed API layer (such as django-ninja), on Postgres.
+- **Frontend:** Preact with TypeScript, built as an installable PWA. The study loop is stateful and client-side, which is why a client app is justified.
+- **Auth:** same-origin session cookies. The built frontend and the API are served under one domain.
+- **Scheduling is server-authoritative.** The client only handles in-session ordering.
+- **Online-first PWA for v1.** Installable with a cached app shell; offline study can come later.
+
+## 4. Core concepts
 
 ### Word (shared by both users)
+- `chinese`: traditional characters
+- `pinyin`: with tone marks (nǐ hǎo), not tone numbers
+- `english_basic`: a short gloss used on cards
 
-| Field | Notes |
-| --- | --- |
-| `chinese` | Traditional characters |
-| `pinyin` | With tone marks (nǐ hǎo), not tone numbers |
-| `english_basic` | Short gloss used on the card prompt and answer |
-| `english_detail` | "Complex definition": nuance, multiple senses, usage notes. Shown on the answer side, de-emphasized or collapsed |
-| `sentence_zh` | Example sentence, traditional characters |
-| `sentence_pinyin` | Same sentence with tone marks |
-| `sentence_en` | English translation |
-| `review_status` | `draft` or `reviewed` (see Content authoring) |
-
-The three sentence fields are required together or not at all.
-
-### Category
-
-A named grouping (e.g., Places, Food). Many-to-many with Word through a `word_category` join. A word may belong to several categories.
+### Category (a "deck")
+A named grouping of words. In v1, each HSK level is one deck. Words can belong to several categories (many-to-many).
 
 ### User
-
 A login only. Each user has independent progress.
 
 ### UserWord
+Per-user learning state, **one row per (user, word, mode)**, with a uniqueness constraint on that combination.
+- `mode`: `pinyin_to_en`, `en_to_zh`, or `zh_to_en`
+- `easy_streak`: consecutive easy taps; reset to 0 by any hard tap. Drives scheduling intervals.
+- `easy_count`: total easy taps, never reset. Drives mode unlocking.
+- `due_on`: a date used to decide which cards belong in a session
+- `last_practiced_at`: a timestamp, kept for later use
 
-Per-user learning state, **one row per (user, word, mode)**. A unique constraint on `(user_id, word_id, mode)` prevents duplicates when a word appears in several categories.
+**Lazy row creation:** rows are created the first time a user practices a deck, not for the whole word list. On first practice, `pinyin_to_en` rows are created for all words in that deck. Rows for the other modes are created when unlocked.
 
-| Field | Notes |
-| --- | --- |
-| `mode` | `pinyin_to_en`, `en_to_zh`, or `zh_to_en` |
-| `easy_streak` | Consecutive easy taps; reset to 0 on any hard tap. Drives scheduling intervals |
-| `easy_count` | Total easy taps ever for this row; never reset. Drives mode unlocking |
-| `due_on` | A calendar date, not a timestamp |
-| `last_practiced_at` | Real timestamp, kept for stats |
+## 5. Study modes and unlocking
 
-### Lazy row creation
-
-Rows are never created for the whole word list. The first time a user practices a category, `pinyin_to_en` rows are created for that category's words (due today). Rows for the other modes are created only when unlocked.
-
-## 4. Study modes and unlocking
-
-| Mode | Prompt | Answer reveals (in order) |
-| --- | --- | --- |
-| Pinyin to English | Pinyin | Basic English, characters, then detail and sentence |
-| English to Chinese | Basic English | Characters, pinyin, then detail and sentence |
-| Characters to English | Characters | Basic English, pinyin, then detail and sentence |
+| Mode | Prompt | Answer shows (in order) |
+|---|---|---|
+| Pinyin to English | Pinyin | Basic English, then characters |
+| English to Chinese | Basic English | Characters, then pinyin |
+| Characters to English | Characters | Basic English, then pinyin |
 
 **Unlock chain (per word, per user)**
-
 1. `pinyin_to_en` is available from the start.
-2. `en_to_zh` unlocks when the word's `pinyin_to_en` row reaches the unlock threshold on `easy_count` (default 5).
-3. `zh_to_en` unlocks when both the `pinyin_to_en` and `en_to_zh` rows have reached the threshold.
+2. `en_to_zh` unlocks when the word's `pinyin_to_en` `easy_count` reaches the threshold (5).
+3. `zh_to_en` unlocks when both of the other modes have reached the threshold.
 
-**Rules**
+Unlocks are permanent: `easy_count` never decreases, so a later hard tap never relocks a mode. A newly unlocked mode's first `due_on` is tomorrow, so it doesn't land alongside its sibling card in the same session.
 
-- A newly unlocked mode's first `due_on` is **tomorrow**, which keeps sibling cards for the same word from landing in the same session.
-- Unlocks are permanent: `easy_count` never decreases, so a later hard tap never relocks a mode.
-- Unlock check runs on each easy tap. When `easy_count` crosses the threshold and the chain's prerequisites are met, the next mode's row is created with `due_on` = tomorrow.
-- Sessions use a **mixed queue** across all unlocked modes for the selected categories.
-- Sibling-leak rule: show at most one mode per word per day, since seeing one mode's answer gives away another.
+A session is a **mixed queue** across all of a deck's unlocked modes, with at most one mode per word per session so one answer never gives away another.
 
-## 5. Scheduling
+## 6. Scheduling
 
-### Principles
+`due_on` is not a literal deadline. It is a simple signal for building each session's deck: a card is in the deck if its `due_on` is today or earlier. There is no day-rollover logic; "today" is just the calendar date.
 
-- Two ratings only: hard (left tap) and easy (right tap).
-- Resolution is by **day**: "today" and "tomorrow". No minute-level timers.
-- The ladder is fixed. Values live in one config so they can be tuned from real use.
-
-### Ladder
-
-Two counters on each UserWord do different jobs:
-
-- **`easy_streak`** (reset by any hard tap) decides **how far out the card is scheduled**.
-- **`easy_count`** (never reset) decides **when the next mode unlocks**.
+### Rating a card
+Two ratings only: hard (left tap) and easy (right tap).
 
 | Event | Result |
-| --- | --- |
+|---|---|
 | Hard tap | `due_on` = today; `easy_streak` = 0; `easy_count` unchanged |
-| Easy tap | `easy_streak` + 1 and `easy_count` + 1; `due_on` = today + the interval for the new streak (below) |
-
-**Streak-to-interval ladder (defaults, one config array)**
+| Easy tap | `easy_streak` + 1 and `easy_count` + 1; `due_on` = today + the interval for the new streak |
 
 | `easy_streak` after tap | Next due |
-| --- | --- |
+|---|---|
 | 1 | Tomorrow |
 | 2 to 4 | 3 days |
 | 5 to 9 | 7 days |
 | 10 or more | 14 days |
 
-**Mastered is derived, not stored.** A row counts as "mastered" for display (category picker counts, session summary) when `easy_streak` is at or above a configured level (default 5). A hard tap resets the streak, so the card naturally drops out of mastered with no separate flag to maintain.
+### Building and running a session
+- **Deck:** all of the user's rows in the selected deck with `due_on` today or earlier, across unlocked modes, shuffled at the start.
+- **Easy tap:** the card leaves the session.
+- **Hard tap:** the card is reinserted at a random position in the remaining cards.
+- **Session end:** the deck is empty, meaning every card has had an easy tap.
+- Missing days simply makes the next deck bigger.
 
-**Why cumulative count for unlocking:** a hard tap should send a card back to short intervals, but it shouldn't take away a mode the user already earned. Because an easy tap removes the card from today's queue, `easy_count` can grow at most once per day per row in normal use, so reaching 5 means the word was recalled on five separate days, though not necessarily consecutively. Each mode's counters are independent.
+### Tunable values
+The ladder intervals and the unlock threshold (5) are hard-coded in the settings file for v1. Early sessions with the largest HSK levels will be long; deck sizes are expected to be tuned after real use.
 
-### Session queue
+## 7. UX and screens
 
-- **Query:** all of the user's rows where `due_on <= today`, filtered to unlocked modes and selected categories. Overdue cards are included automatically.
-- **New cards:** words in a selected category without a row yet get `pinyin_to_en` rows on first practice. A per-session cap limits how many new cards are shown.
-- **Easy tap:** the card leaves this session's queue (it is now due tomorrow or later).
-- **Hard tap:** the card is reinserted *k* positions ahead in the in-memory queue, where *k* is roughly a quarter of the remaining queue with a floor of about 3. The database only records `due_on = today`; there is no within-session timer.
-- **Session end:** the queue is empty, meaning every card has received an easy tap.
-- **Practice ahead:** if nothing is due, the user can optionally practice cards not yet due.
-
-### Day boundary
-
-"Today" rolls over at a configured early-morning hour (default 4 a.m.) so late-night sessions count as the previous day. One configured timezone is enough for v1 since both users share it.
-
-### Workload note
-
-At full scale (1,000 words x 3 modes per person), a 14-day mastered cadence is roughly 215 reviews per day per person. That steady state will take months to reach because words are introduced category by category. A 30-day rung can be added later with no structural change.
-
-## 6. UX and screens
-
-**Visual direction:** the "split zone" layout in a light theme: a simple, typography-led screen with large prompts, a mode chip and counter at the top, and two color-tinted tap zones.
-
-**Light palette used in mockups**
-
-- Screen background `#FAFAF7`, text `#1E2024`, muted text `#7A808A`
-- Chip fill `#EEF0F2`, hairlines `#D9DCE0`
+**Visual direction:** a simple, typography-led layout with a large prompt, a mode chip and counter at the top, and two color-tinted tap zones, in a light theme.
+- Background `#FAFAF7`, text `#1E2024`, muted text `#7A808A`
 - Pinyin accent `#2F5BD9`
-- Hard zone `#FBE4E4` with text `#A32D2D`; easy zone `#E1F3E6` with text `#1F6B3A`
+- Hard zone `#FBE4E4` (text `#A32D2D`); easy zone `#E1F3E6` (text `#1F6B3A`)
 
 ### Login
+Minimal username and password form for two seeded accounts. No registration flow.
 
-Minimal email and password form. Two accounts; no registration flow in v1.
-
-### Category picker
-
-- Header "Choose what to practice", with a note that modes are mixed automatically.
-- Bordered list rows (not cards), each with a checkbox, category name, word count, mastered count, and a status badge: "N due", "None due" (muted, still selectable for practicing ahead), or "New".
-- Primary button at the bottom shows the actual session size: "Start session · 15 cards".
+### Deck picker
+A bordered list of decks (HSK levels), each showing its word count and a badge with the number of cards due. Decks with nothing due show a quieter "None due" badge. Tapping a deck starts a session.
 
 ### Study card
+- **Top bar:** mode chip (e.g., "English to Chinese") and a progress counter.
+- **Prompt:** large and centered, with a faint "Tap anywhere to reveal" hint.
+- **Tap 1, anywhere:** reveals the answer in the order shown in section 5.
+- **After reveal:** the bottom of the screen shows a left "Hard" zone and a right "Easy" zone. The entire left and right halves of the screen are tappable.
+- **Tap 2:** advances to the next card immediately, with no confirmation message.
 
-- **Top bar:** mode chip (e.g., "English to Chinese") and progress counter (e.g., "7 / 20").
-- **Prompt:** large and centered. A faint "Tap anywhere" hint sits at the bottom.
-- **Tap 1, anywhere:** reveals the answer in the order defined for the mode. The detail definition is collapsed or de-emphasized; the example sentence shows in characters, pinyin, and English.
-- **Zones appear on reveal:** the bottom of the screen splits into a left "Hard / later today" zone and a right "Easy / tomorrow" zone. The **entire left and right halves** of the screen are tappable, not just the tinted areas.
-- **Tap 2:** a brief confirmation ("Hard · back today" or "Easy · see you tomorrow") then the next card.
-- **Undo:** a lightweight undo for the last rating, since mis-taps are likely.
+### All caught up
+Shown when a deck has no due cards: a short message and a button back to the deck picker.
 
-### Session summary
+## 8. Content
 
-- Cards reviewed, with a Hard / Easy split in the zone colors.
-- Rows for: due tomorrow, newly mastered words, and any new mode unlocked.
-- Buttons: "Practice again" and "Done".
+**Source:** the HSK 3.0 vocabulary from the open `complete-hsk-vocabulary` dataset, using the lists of new words per level so each word belongs to the level where it is introduced. Traditional forms, pinyin, and English meanings come from the dataset.
 
-### Empty state: "All caught up"
+**Import checks:** report polyphones (words with more than one pronunciation), entries with several definitions, and per-level word counts compared with the official syllabus, since the dataset's 3.0 coverage may be slightly incomplete. The import should choose the best single basic gloss per word.
 
-Names what happened, states when the next cards are due, and offers a "Practice ahead" action and a category picker.
+**Editing:** imported words can be corrected through Django's admin. There is no manual word entry in v1.
 
-## 7. Content authoring
-
-### Seeding (1,000 most common words)
-
-- **Skeleton from a dictionary:** take traditional characters, pinyin, and basic gloss from an open dictionary (such as CC-CEDICT) plus a frequency list. These fields should be reliable.
-- **LLM for finer details:** generate `english_detail`, the three-script example sentence, and suggested categories.
-- **Validation:** compare generated pinyin for single words against the dictionary and flag mismatches. LLMs make real mistakes with polyphonic characters inside sentences (e.g., 了, 行), so generated content starts as `draft`.
-
-### Auto-categorization
-
-Keep a fixed, human-curated category list. Have the LLM propose one to three categories per word **from that list only**, marked pending until approved. The specific tool for this (a "decision engine" under consideration) is still to be chosen; the controlled-vocabulary-plus-approval pattern works with any.
-
-### Management UI (v1 minimum)
-
-- Word list with search and filters for category and review status (including "needs review").
-- Edit form for all word fields.
-- Category create, rename, and assignment.
-- CSV import: `chinese`, `pinyin`, `english_basic`, `english_detail`, `sentence_zh`, `sentence_pinyin`, `sentence_en`, and a delimited `categories` column.
-- Per-word "regenerate details" action.
-
-## 8. Edge cases
-
-- Nothing due: show the empty state with practice-ahead option.
+## 9. Edge cases
+- Nothing due: show the "All caught up" screen.
 - Pinyin to English can be ambiguous because of homophones; the answer shows characters too, and this is an accepted quirk of the mode.
-- Category and session selections are remembered between sessions.
-- A word in several categories has one UserWord row per mode, not one per category.
-- Missing a day simply grows tomorrow's queue.
+- A word in several decks has one UserWord row per mode, not one per deck.
 
-## 9. Success criteria
-
+## 10. Success criteria
 - Both users practice several times a week.
-- Reveal and rate feel instant: prefetch the due queue at session start so there is no loading between cards.
-- Draft content gets reviewed over time (a visible "needs review" count trends down).
+- Revealing and rating feel instant: the session's deck is loaded at the start so there is no loading between cards.
 
-## 10. v1 scope
+## 11. Scope
 
+**v1**
 1. Two-user login
-2. Word and category management (CRUD plus CSV import), with review status
-3. Seeded word list (1,000 words)
+2. HSK 3.0 import, one deck per level
+3. Word and deck management for correcting data
 4. Three study modes with tap-to-reveal and left/right rating
-5. Day-based ladder scheduler (streak-driven intervals) with count-based mode unlocking
-6. Category picker, study card, and session summary screens (light theme)
-7. All-caught-up empty state
+5. Streak-driven intervals and count-based mode unlocking
+6. Deck picker, study card, and "All caught up" screens (light theme)
+7. Installable PWA
 
-**Later ideas:** text-to-speech, tone-colored characters, stats view, leech flag for repeatedly missed words, 30-day rung, dark theme, simplified-character option, installable PWA with offline support.
+**v1.1:** manually added words (with CSV import), auto-categorization
 
-## 11. Tunable parameters and open items
+**v1.2:** LLM-generated extra details and example sentences, with a collapsed detail section on the answer side
 
-| Parameter | Default | Notes |
-| --- | --- | --- |
-| `easy_count` threshold to unlock the next mode | 5 | Cumulative, never reset; at most one increment per day per row, so about five days minimum |
-| Streak-to-interval ladder | 1, 3, 7, 14 days at streaks 1, 2-4, 5-9, 10+ | Config array; add a 30-day rung if desired |
-| Streak level that displays as "mastered" | 5 | Derived for display only; not stored |
-| Hard-card requeue distance | About 1/4 of remaining queue, minimum about 3 | Session-level only |
-| New cards per session cap | To be set | Tune based on category sizes |
-| Day rollover hour | 4 a.m. | Single configured timezone |
+**Unscheduled:** draft/reviewed status for words, undo, a session summary, remembering the last deck selection, offline study, text-to-speech, a stats view, a dark theme, smaller decks, a daily new-word cap, longer review intervals, a "regenerate details" button
 
-**Open**
-
-- Choice of tool for auto-categorization.
-- Whether to move Characters to English earlier in the unlock chain (it is usually the easiest direction, so placing it last gives character recognition the least practice).
-- Whether a word's sentence is optional or required for seeded content.
+## 12. Open items
+- Tuning deck sizes after real use.
+- Whether to unlock Characters to English earlier in the chain. It is usually the easiest direction, so placing it last gives character recognition the least practice.
