@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build data/hsk/cards.json from downloaded HSK raw level files."""
+"""
+Build data/hsk/cards.json from downloaded HSK raw level files.
+Usage: uv run scripts/build_card_data.py
+"""
 
 from __future__ import annotations
 

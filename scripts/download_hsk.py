@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Download HSK 3.0 exclusive newest wordlists into data/hsk/raw/ (gitignored)."""
+"""
+Download HSK 3.0 exclusive newest wordlists into data/hsk/raw/ (gitignored).
+Usage: uv run scripts/download_hsk.py
+"""
 
 from __future__ import annotations
 
