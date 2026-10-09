@@ -55,25 +55,86 @@ SAMPLE_ENTRIES = [
             },
         ],
     },
+    {
+        "simplified": "那",
+        "forms": [
+            {
+                "traditional": "那",
+                "transcriptions": {"pinyin": "nuó"},
+                "meanings": ["(archaic) many", "beautiful"],
+            },
+            {
+                "traditional": "那",
+                "transcriptions": {"pinyin": "nà"},
+                "meanings": ["(specifier) that; the; those"],
+            },
+        ],
+    },
+    {
+        "simplified": "北京",
+        "forms": [
+            {
+                "traditional": "北京",
+                "transcriptions": {"pinyin": "Běi jīng"},
+                "meanings": ["Beijing", "capital of People's Republic of China"],
+            },
+        ],
+    },
+    {
+        "simplified": "姓",
+        "forms": [
+            {
+                "traditional": "姓",
+                "transcriptions": {"pinyin": "xìng"},
+                "meanings": ["family name", "surname", "to be surnamed"],
+            },
+        ],
+    },
 ]
 
 
-def test_choose_english_basic_truncates_at_semicolon() -> None:
-    assert build.choose_english_basic(["to see; to look at", "to read"]) == "to see"
+def test_choose_english_basic_joins_until_limit() -> None:
+    assert build.choose_english_basic(["to see; to look at", "to read"]) == (
+        "to see; to look at; to read"
+    )
+    assert build.choose_english_basic(["family name", "surname", "to be surnamed"]) == (
+        "family name; surname; to be surnamed"
+    )
+    long = "x" * 200
+    assert build.choose_english_basic([long, "y" * 100]) == long
+    assert len(build.choose_english_basic(["a" * 300])) == 255
+
+
+def test_useful_meanings_filters_junk_senses() -> None:
+    assert build.useful_meanings(["surname Bai"], "Bǎi") == []
+    assert build.useful_meanings(["surname", "family name"], "xìng") == [
+        "surname",
+        "family name",
+    ]
+    assert build.useful_meanings(["(archaic) many", "beautiful"], "nuó") == ["beautiful"]
+    assert build.useful_meanings(["variant of 哪", "that"], "nǎ") == ["that"]
 
 
 def test_build_cards_drops_surname_and_explodes_polyphones() -> None:
     cards, dropped = build.build_cards_from_entries(SAMPLE_ENTRIES, level=1)
+    # surname-only 百/Bǎi + archaic sense stripped from 那/nuó (kept via "beautiful")
     assert dropped == 1
-    assert len(cards) == 3
     pinyins = {(c["chinese"], c["pinyin"]) for c in cards}
     assert ("百", "bǎi") in pinyins
     assert ("百", "Bǎi") not in pinyins
     assert ("看", "kān") in pinyins
     assert ("看", "kàn") in pinyins
+    assert ("那", "nà") in pinyins
+    assert ("那", "nuó") in pinyins  # kept: non-junk sense "beautiful" remains
+    assert ("北京", "Běi jīng") in pinyins  # capitalized proper noun, not a surname
+    assert ("姓", "xìng") in pinyins  # literal "surname" gloss, lowercase pinyin
     hundred = next(c for c in cards if c["pinyin"] == "bǎi")
-    assert hundred["english_basic"] == "hundred"
+    assert hundred["english_basic"] == "hundred; numerous"
     assert hundred["simplified"] == "百"
+    nuo = next(c for c in cards if c["pinyin"] == "nuó")
+    assert nuo["english_basic"] == "beautiful"
+    xing = next(c for c in cards if c["pinyin"] == "xìng")
+    assert xing["english_basic"] == "family name; surname; to be surnamed"
 
 
 def test_build_card_data_cli_writes_cards_json(tmp_path: Path) -> None:
@@ -85,7 +146,7 @@ def test_build_card_data_cli_writes_cards_json(tmp_path: Path) -> None:
     rc = build.main(["--raw-dir", str(raw), "--out", str(out), "--levels", "1"])
     assert rc == 0
     cards = json.loads(out.read_text(encoding="utf-8"))
-    assert len(cards) == 3
+    assert len(cards) == 7
 
 
 @pytest.mark.django_db

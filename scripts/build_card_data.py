@@ -16,7 +16,8 @@ DEFAULT_OUT = ROOT / "data" / "hsk" / "cards.json"
 LEVELS = (1, 2, 3, 4, 5, 6, 7)
 
 # Pretty exclusive/newest JSON only (not *.min.json abbreviated keys).
-_JUNK_RE = re.compile(r"\b(archaic|variant of)\b|\(old\)", re.I)
+_ALWAYS_JUNK_MEANING_RE = re.compile(r"\b(archaic|variant of)\b|\(old\)", re.I)
+_SURNAME_MEANING_RE = re.compile(r"\bsurname\b", re.I)
 
 
 class Form(TypedDict):
@@ -33,32 +34,56 @@ class Entry(TypedDict):
     pos: list[str]
     forms: list[Form]
 
-# TODO: Implement filter on meanings to throw out less useful meanings
-def choose_english_basic(meanings: list[str]) -> str:
-    if not meanings:
-        return ""
-    gloss = meanings[0].split(";")[0].strip()
-    return gloss[:255]
 
-
-# TODO: Switch up how this is done. Filter junk meanings, then reject if no valid meanings left.
-def is_junk_form(form: Form) -> bool:
-    pinyin = form["transcriptions"]["pinyin"].strip()
-    # Capitalized pinyin is a surname reading in this dataset.
-    # TODO: Some proper nouns are capitalized, so we need to also search for a surname meaning
-    if pinyin[:1].isupper():
+def is_junk_meaning(meaning: str, *, pinyin_capitalized: bool) -> bool:
+    if _ALWAYS_JUNK_MEANING_RE.search(meaning):
         return True
-    blob = " ".join(form["meanings"])
-    return bool(_JUNK_RE.search(blob))
+    # "surname Bai" is a reading label; "surname" as a gloss (姓) is useful.
+    if pinyin_capitalized and _SURNAME_MEANING_RE.search(meaning):
+        return True
+    return False
 
 
-def card_from_form(entry: Entry, form: Form, level: int) -> dict[str, Any]:
+def useful_meanings(meanings: list[str], pinyin: str) -> list[str]:
+    capitalized = bool(pinyin.strip()[:1].isupper())
+    return [m for m in meanings if not is_junk_meaning(m, pinyin_capitalized=capitalized)]
+
+
+_ENGLISH_BASIC_MAX = 255
+
+
+def choose_english_basic(meanings: list[str]) -> str:
+    """Join useful meanings until the field length limit."""
+    parts: list[str] = []
+    size = 0
+    for meaning in meanings:
+        piece = meaning.strip()
+        if not piece:
+            continue
+        # "; " between senses (2 chars) once we already have content.
+        sep = 2 if parts else 0
+        if size + sep + len(piece) <= _ENGLISH_BASIC_MAX:
+            parts.append(piece)
+            size += sep + len(piece)
+            continue
+        if not parts:
+            return piece[:_ENGLISH_BASIC_MAX]
+        break
+    return "; ".join(parts)
+
+
+def card_from_form(
+    entry: Entry,
+    form: Form,
+    level: int,
+    meanings: list[str],
+) -> dict[str, Any]:
     return {
         "hsk_level": level,
         "simplified": entry["simplified"].strip(),
         "chinese": form["traditional"].strip(),
         "pinyin": form["transcriptions"]["pinyin"].strip(),
-        "english_basic": choose_english_basic(form["meanings"]),
+        "english_basic": choose_english_basic(meanings),
     }
 
 
@@ -67,10 +92,12 @@ def build_cards_from_entries(entries: list[Entry], level: int) -> tuple[list[dic
     dropped = 0
     for entry in entries:
         for form in entry["forms"]:
-            if is_junk_form(form):
+            pinyin = form["transcriptions"]["pinyin"]
+            meanings = useful_meanings(form["meanings"], pinyin)
+            if not meanings:
                 dropped += 1
                 continue
-            cards.append(card_from_form(entry, form, level))
+            cards.append(card_from_form(entry, form, level, meanings))
     return cards, dropped
 
 
