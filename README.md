@@ -101,6 +101,12 @@ uv run ruff format .
 # Django shell
 uv run python manage.py shell
 
+# Seed HSK decks (local files under data/hsk/, gitignored)
+uv run python scripts/download_hsk.py
+uv run python scripts/build_card_data.py --levels 1,2,3
+# edit data/hsk/cards.json if needed
+uv run python manage.py seed_hsk
+
 # Create a superuser, then add the second account in /admin/
 uv run python manage.py createsuperuser
 

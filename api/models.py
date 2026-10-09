@@ -6,6 +6,7 @@ class Word(models.Model):
     """Vocabulary entry: traditional Chinese, pinyin with tone marks, and basic English."""
 
     chinese = models.CharField(max_length=64)
+    simplified = models.CharField(max_length=64, default="")
     pinyin = models.CharField(max_length=128)
     english_basic = models.CharField(max_length=255)
 
