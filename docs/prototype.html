@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chinese Flashcard Trainer: v1 mockups</title>
+<style>
+:root{--bg:#FAFAF7;--ink:#1E2024;--mut:#7A808A;--chip:#EEF0F2;--line:#D9DCE0;--pin:#2F5BD9;--hard:#FBE4E4;--hardt:#A32D2D;--easy:#E1F3E6;--easyt:#1F6B3A}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px;background:#EDEDEA;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px}
+.zh{font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+h1{font-size:18px;font-weight:600;margin:0}
+p.note{font-size:13px;color:#5b6068;margin:0;max-width:340px;text-align:center}
+nav{display:flex;gap:8px}
+nav button{font:inherit;font-size:13px;padding:6px 14px;border-radius:20px;border:1px solid #B8BCC4;background:transparent;color:var(--ink);cursor:pointer}
+nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+nav button:focus-visible,.row:focus-visible,.cta:focus-visible,#study:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
+.phone{width:300px;height:520px;background:var(--bg);border-radius:28px;border:1px solid #C9CCD2;position:relative;overflow:hidden}
+.top{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:20px;padding:4px 12px}
+.mut{color:var(--mut)}
+.prompt{text-align:center;margin-top:56px;padding:0 16px;font-size:44px;font-weight:500;line-height:1.15}
+.ans{text-align:center;margin-top:12px;padding:0 16px}
+.zones{position:absolute;bottom:0;left:0;right:0;height:120px;display:flex}
+.zones div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px;font-weight:500}
+.zones small{font-size:12px;font-weight:400}
+.hint{position:absolute;bottom:26px;width:100%;text-align:center;font-size:12px;color:var(--mut)}
+#study{cursor:pointer;user-select:none}
+.title{padding:24px 20px 8px;font-size:22px;font-weight:500}
+.list{margin:12px 20px 0;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;font:inherit;color:inherit;text-align:left}
+.row b{display:block;font-size:15px;font-weight:500}
+.row span.s{font-size:12px;color:var(--mut)}
+.row .g{flex:1}
+.badge{font-size:12px;border-radius:20px;padding:3px 10px}
+.due{background:var(--hard);color:var(--hardt)}.none{background:var(--chip);color:var(--mut)}
+.center{text-align:center;padding:150px 28px 0}
+.center .big{font-size:22px;font-weight:500}
+.cta{margin-top:24px;font:inherit;font-size:15px;font-weight:500;padding:12px 22px;border-radius:12px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.zones{animation:f .15s ease-out}@keyframes f{from{opacity:0}to{opacity:1}}}
+</style>
+</head>
+<body>
+<h1>Chinese Flashcard Trainer: v1 mockups</h1>
+<p class="note">Sample data only. In the study screen, tap once to reveal, then tap the left half (hard) or right half (easy).</p>
+<nav aria-label="Screens">
+<button data-s="picker" aria-pressed="true">Deck picker</button>
+<button data-s="study" aria-pressed="false">Study card</button>
+<button data-s="done" aria-pressed="false">All caught up</button>
+</nav>
+<main class="phone" id="screen" aria-live="polite"></main>
+<script>
+var cards=[
+ {m:"Pinyin to English",p:'<span class="zh">túshūguǎn</span>',a:[["library",""],["圖書館","zh"]]},
+ {m:"English to Chinese",p:"thank you",a:[["謝謝","zh big"],["xièxie","pin"]]},
+ {m:"Characters to English",p:'<span class="zh">學校</span>',a:[["school",""],["xuéxiào","pin"]]}
+];
+var decks=[["HSK 1",300,12],["HSK 2",300,0],["HSK 3",300,0]];
+var scr=document.getElementById("screen"),cur="picker",i=0,shown=false;
+function ans(a){return a.map(function(x,k){var c=x[1],st=k==0?"font-size:"+(c.indexOf("big")>-1?"72px;line-height:1.2":"34px")+";font-weight:500":"font-size:22px;"+(c=="pin"?"color:#2F5BD9":"");return '<div class="'+(c.indexOf("zh")>-1?"zh":"")+'" style="'+st+'">'+x[0]+'</div>'}).join("")}
+function render(){
+ document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.s==cur)});
+ if(cur=="picker"){
+  scr.innerHTML='<div class="title">Choose a deck</div><div class="list">'+decks.map(function(d,k){return '<button class="row" data-d="'+k+'"><span class="g"><b>'+d[0]+'</b><span class="s">'+d[1]+' words</span></span><span class="badge '+(d[2]?"due":"none")+'">'+(d[2]?d[2]+" due":"None due")+'</span></button>'}).join("")+'</div>';
+  scr.querySelectorAll(".row").forEach(function(r){r.onclick=function(){go("study")}});
+ }else if(cur=="study"){
+  var c=cards[i];
+  scr.innerHTML='<div id="study" tabindex="0" style="height:100%"><div class="top"><span class="chip">'+c.m+'</span><span class="mut">'+(i+1)+' / '+cards.length+'</span></div><div class="prompt">'+c.p+'</div>'+
+  (shown?'<div class="ans">'+ans(c.a)+'</div><div class="zones"><div style="background:var(--hard);color:var(--hardt)">Hard<small>back soon</small></div><div style="background:var(--easy);color:var(--easyt)">Easy<small>later</small></div></div>':'<div class="hint">Tap anywhere to reveal</div>')+'</div>';
+  document.getElementById("study").onclick=function(e){
+   if(!shown){shown=true;render();return}
+   var r=scr.getBoundingClientRect(),hard=e.clientX-r.left<r.width/2;
+   shown=false;
+   if(hard){cards.push(cards[i])}
+   i++;
+   if(i>=cards.length){i=0;cards=cards.slice(0,3);cur="done"}
+   render();
+  };
+ }else{
+  scr.innerHTML='<div class="center"><div class="big">All caught up</div><p class="mut" style="font-size:14px;margin:8px 0 0">No cards are due in this deck right now.</p><button class="cta" id="back">Back to decks</button></div>';
+  document.getElementById("back").onclick=function(){go("picker")};
+ }
+}
+function go(s){cur=s;i=0;shown=false;cards=cards.slice(0,3);render()}
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){go(b.dataset.s)}});
+render();
+</script>
+</body>
+</html>
