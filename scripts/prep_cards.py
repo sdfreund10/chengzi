@@ -125,9 +125,6 @@ MODEL = "openai/gpt-6-luna"
 def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return (analysis, metrics) for one card."""
     level = int(card["hsk_level"])
-    categories = HSK_CATEGORIES.get(level)
-    if not categories:
-        raise ValueError(f"No category allowlist configured for HSK level {level}")
 
     formatted_word = f"""
         Simplified: {card["simplified"]}
@@ -182,11 +179,6 @@ def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
         "total_tokens": usage.get("total_tokens"),
     }
     analysis = json.loads(content)
-    selected_category = analysis.get("category")
-    if selected_category not in categories:
-        raise ValueError(
-            f"Model returned invalid category for HSK {level}: {selected_category!r}"
-        )
     return analysis, metrics
 
 
