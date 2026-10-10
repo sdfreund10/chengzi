@@ -194,6 +194,12 @@ def main(argv: list[str] | None = None) -> int:
     if not isinstance(all_rows, list):
         raise SystemExit(f"Input file must be a JSON array: {in_path}")
 
+    if out_path == in_path:
+        backup = in_path.with_suffix(in_path.suffix + ".bak")
+        if not backup.exists():
+            shutil.copy2(in_path, backup)
+            print(f"Created backup: {backup}")
+
     pending: list[dict[str, Any]] = []
     normalized = 0
     for row in all_rows:
@@ -214,12 +220,6 @@ def main(argv: list[str] | None = None) -> int:
     if not pending:
         print(f"No cards need recategorization; normalized {normalized} category values.")
         return 0
-
-    if out_path == in_path and not normalized:
-        backup = in_path.with_suffix(in_path.suffix + ".bak")
-        if not backup.exists():
-            shutil.copy2(in_path, backup)
-            print(f"Created backup: {backup}")
 
     print(f"Recategorizing {len(pending)} cards with {args.workers} workers.")
     total_cost, total_latency_ms = process_cards(pending, all_rows, out_path, args.workers)

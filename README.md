@@ -109,7 +109,7 @@ make showmigrations
 # Seed words and categories from prepped_cards.json (local file preferred)
 uv run python scripts/download_hsk.py
 uv run python scripts/build_card_data.py --levels 1,2,3
-# Prepare data/hsk/prepped_cards.json before seeding
+uv run scripts/prep_cards.py
 make seed-hsk
 # If the local file is unavailable, set HSK_PREPPED_CARDS_URL in .env
 

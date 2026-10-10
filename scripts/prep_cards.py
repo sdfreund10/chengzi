@@ -5,7 +5,7 @@ Filter out less useful cards, recategorize some cards, and add supporting data.
 Usage:
   uv run scripts/prep_cards.py --limit 100
   uv run scripts/prep_cards.py --workers 12
-  uv run scripts/prep_cards.py --rerun
+  uv run scripts/prep_cards.py --force
   uv run scripts/prep_cards.py
 """
 
@@ -45,18 +45,18 @@ ANALYSIS_PROMPT = """
 You are a Chinese tutor helping prepare flash cards for a student learning Chinese in Taiwan.
 You will be given a Chinese word with basic information from the HSK curriculum.
 
-Your goal is to analyze the word and provide information to help the student learn words and what to
-what is most important for achieving proficiency.
+Your goal is to analyze the word and provide information to help the student learn vocabulary and
+understand what matters most for achieving proficiency.
 
 ## GUIDELINES
 **Meaning**
-Meaning should be as concise as possible to convery the meaning of a word.
-Favor the provided HSK meaning and only add details if necesssary.
+Meaning should be as concise as possible to convey the meaning of a word.
+Favor the provided HSK meaning and only add details if necessary.
 
 **Example Sentence**
 The example sentence should use words at the same level or easier than the given word.
 Try to use the provided HSK level as a guide for what words to use.
-All varients of the example sentence should be equivalent.
+All variants of the example sentence should be equivalent.
 
 **Category**
 Choose the single best-fitting topical study category from the allowed enum.
@@ -148,21 +148,20 @@ def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
         headers={
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         },
-        data=json.dumps(
-            {
-                "model": MODEL,
-                "messages": [
-                    {"role": "system", "content": ANALYSIS_PROMPT},
-                    {"role": "user", "content": formatted_word},
-                ],
-                "response_format": OUTPUT_SCHEMA,
-                "reasoning": {
-                    "effort": "low",
-                    "exclude": True,
-                },
-                "usage": {"include": True},
-            }
-        ),
+        json={
+            "model": MODEL,
+            "messages": [
+                {"role": "system", "content": ANALYSIS_PROMPT},
+                {"role": "user", "content": formatted_word},
+            ],
+            "response_format": OUTPUT_SCHEMA,
+            "reasoning": {
+                "effort": "low",
+                "exclude": True,
+            },
+            "usage": {"include": True},
+        },
+        timeout=(10, 120),
     )
     latency_ms = round((time.perf_counter() - started) * 1000, 1)
     response.raise_for_status()
@@ -242,8 +241,11 @@ def load_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def write_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+    """Atomically write the current card data."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    temp_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temp_path.replace(path)
 
 
 def process_pending_cards(
@@ -328,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
         "--workers",
         type=int,
         default=12,
-        help="Number of cards to analyze concurrently (default: 8)",
+        help="Number of cards to analyze concurrently (default: 12)",
     )
     parser.add_argument(
         "--log-dir",
@@ -342,6 +344,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Re-analyze cards even if already in the output file (replaces matching rows)",
     )
     args = parser.parse_args(argv)
+
+    if args.limit is not None and args.limit < 1:
+        raise SystemExit("--limit must be at least 1")
 
     if args.workers < 1:
         raise SystemExit("--workers must be at least 1")

@@ -34,15 +34,22 @@ def parse_cards(data: Any) -> list[dict[str, Any]]:
             raise CommandError(f"cards[{index}] must be an object")
 
         try:
-            level = int(row["hsk_level"])
-            chinese = str(row["chinese"]).strip()
-            simplified = str(row["simplified"]).strip()
-            pinyin = str(row["pinyin"]).strip()
-            english_basic = str(row["english_basic"]).strip()[:255]
-        except (KeyError, TypeError, ValueError) as exc:
+            level = row["hsk_level"]
+            chinese = row["chinese"]
+            simplified = row["simplified"]
+            pinyin = row["pinyin"]
+            english_basic = row["english_basic"]
+        except KeyError as exc:
             raise CommandError(f"cards[{index}] missing/invalid fields: {exc}") from exc
 
-        if level < 1 or not chinese or not simplified or not pinyin or not english_basic:
+        if type(level) is not int or level not in range(1, 8):
+            raise CommandError(f"cards[{index}].hsk_level must be an integer from 1 to 7")
+        text_fields = (chinese, simplified, pinyin, english_basic)
+        if any(not isinstance(value, str) for value in text_fields):
+            raise CommandError(f"cards[{index}] text fields must be strings")
+        chinese, simplified, pinyin, english_basic = (value.strip() for value in text_fields)
+        english_basic = english_basic[:255]
+        if not chinese or not simplified or not pinyin or not english_basic:
             raise CommandError(f"cards[{index}] has an empty or invalid required field")
 
         raw_categories = row.get("categories", [])
@@ -99,10 +106,10 @@ def load_cards(path: Path, url: str | None) -> tuple[list[dict[str, Any]], str]:
         response = requests.get(url, timeout=(10, 60))
         response.raise_for_status()
         data = response.json()
-    except requests.RequestException as exc:
-        raise CommandError(f"Could not download cards from {url}: {exc}") from exc
     except requests.exceptions.JSONDecodeError as exc:
         raise CommandError(f"Remote cards file from {url} is not valid JSON: {exc}") from exc
+    except requests.RequestException as exc:
+        raise CommandError(f"Could not download cards from {url}: {exc}") from exc
 
     return parse_cards(data), url
 
