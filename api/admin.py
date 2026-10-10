@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AdminUserCreationForm,
+    UserChangeForm,
+)
 from django.contrib.auth.models import User
 
 from api.services.accounts import apply_login_email
@@ -8,8 +11,8 @@ from api.services.accounts import apply_login_email
 from .models import Category, UserWord, Word, WordCategory
 
 
-class EmailUsernameCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
+class EmailUsernameCreationForm(AdminUserCreationForm):
+    class Meta(AdminUserCreationForm.Meta):
         model = User
         fields = ("username",)
 
