@@ -8,12 +8,14 @@ from typing import Any
 import requests
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Q
 
 from api.models import Category, Word, WordCategory
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CARDS = ROOT / "data" / "hsk" / "prepped_cards.json"
 REMOTE_CARDS_URL = "https://juzi-data.sfo3.digitaloceanspaces.com/prepped_cards.json"
+BATCH_SIZE = 100
 
 
 def category_name_for_level(level: int) -> str:
@@ -104,6 +106,98 @@ def load_cards(path: Path, url: str | None) -> tuple[list[dict[str, Any]], str]:
     return parse_cards(data), url
 
 
+def batches(items: list[Any], size: int):
+    for start in range(0, len(items), size):
+        yield items[start : start + size]
+
+
+def seed_word_batch(
+    cards: list[dict[str, Any]], categories: dict[str, Category]
+) -> tuple[int, int, int]:
+    """Bulk upsert words and add their category links for one batch of cards."""
+    cards_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    category_names_by_key: dict[tuple[str, str], set[str]] = {}
+    for row in cards:
+        key = (row["chinese"], row["pinyin"])
+        cards_by_key[key] = row
+        names = category_names_by_key.setdefault(key, set())
+        if not row["exclude"]:
+            names.add(category_name_for_level(row["hsk_level"]))
+        names.update(row["categories"])
+
+    query = Q()
+    for chinese, pinyin in cards_by_key:
+        query |= Q(chinese=chinese, pinyin=pinyin)
+    words_by_key: dict[tuple[str, str], Word] = {}
+    # Keep the first matching existing row, as get_or_create() would.
+    for word in Word.objects.filter(query).order_by("id"):
+        words_by_key.setdefault((word.chinese, word.pinyin), word)
+
+    new_words = [
+        Word(
+            chinese=key[0],
+            pinyin=key[1],
+            simplified=row["simplified"],
+            english_basic=row["english_basic"],
+        )
+        for key, row in cards_by_key.items()
+        if key not in words_by_key
+    ]
+    if new_words:
+        Word.objects.bulk_create(new_words, batch_size=BATCH_SIZE)
+
+    # Re-fetch so this works consistently on database backends that don't return
+    # primary keys from bulk_create().
+    if new_words:
+        for word in Word.objects.filter(query).order_by("id"):
+            words_by_key.setdefault((word.chinese, word.pinyin), word)
+
+    # New words were added to words_by_key during the re-fetch above.
+    new_keys = {(word.chinese, word.pinyin) for word in new_words}
+    updated: list[Word] = []
+    updated_count = 0
+    for key, row in cards_by_key.items():
+        word = words_by_key[key]
+        if key not in new_keys:
+            changed = False
+            if word.simplified != row["simplified"]:
+                word.simplified = row["simplified"]
+                changed = True
+            if word.english_basic != row["english_basic"]:
+                word.english_basic = row["english_basic"]
+                changed = True
+            if changed:
+                updated_count += 1
+                updated.append(word)
+    if updated:
+        Word.objects.bulk_update(updated, ["simplified", "english_basic"], batch_size=BATCH_SIZE)
+
+    word_ids = {key: words_by_key[key].id for key in cards_by_key}
+    links_to_add = {
+        (word_ids[key], categories[name].id)
+        for key, names in category_names_by_key.items()
+        for name in names
+    }
+    existing_links = set(
+        WordCategory.objects.filter(
+            word_id__in={word_id for word_id, _ in links_to_add},
+            category_id__in={category_id for _, category_id in links_to_add},
+        ).values_list("word_id", "category_id")
+    )
+    missing_links = links_to_add - existing_links
+    if missing_links:
+        WordCategory.objects.bulk_create(
+            [
+                WordCategory(word_id=word_id, category_id=category_id)
+                for word_id, category_id in missing_links
+            ],
+            batch_size=BATCH_SIZE,
+            ignore_conflicts=True,
+        )
+
+    return len(new_words), updated_count, len(missing_links)
+
+
 class Command(BaseCommand):
     help = "Seed words and HSK/study categories from prepped HSK card data"
 
@@ -128,49 +222,33 @@ class Command(BaseCommand):
         created_words = 0
         updated_words = 0
         created_links = 0
-        categories: dict[str, Category] = {}
-        used_category_names: set[str] = set()
+        used_category_names = {
+            name
+            for row in cards
+            for name in row["categories"]
+        }
+        used_category_names.update(
+            category_name_for_level(row["hsk_level"])
+            for row in cards
+            if not row["exclude"]
+        )
 
         with transaction.atomic():
-            for row in cards:
-                level = row["hsk_level"]
-                expected_categories = list(row["categories"])
-                if not row["exclude"]:
-                    expected_categories.insert(0, category_name_for_level(level))
+            Category.objects.bulk_create(
+                [Category(name=name) for name in used_category_names],
+                batch_size=BATCH_SIZE,
+                ignore_conflicts=True,
+            )
+            categories = {
+                category.name: category
+                for category in Category.objects.filter(name__in=used_category_names)
+            }
 
-                word, created = Word.objects.get_or_create(
-                    chinese=row["chinese"],
-                    pinyin=row["pinyin"],
-                    defaults={
-                        "simplified": row["simplified"],
-                        "english_basic": row["english_basic"],
-                    },
-                )
-                if created:
-                    created_words += 1
-                else:
-                    fields: list[str] = []
-                    if word.simplified != row["simplified"]:
-                        word.simplified = row["simplified"]
-                        fields.append("simplified")
-                    if word.english_basic != row["english_basic"]:
-                        word.english_basic = row["english_basic"]
-                        fields.append("english_basic")
-                    if fields:
-                        word.save(update_fields=fields)
-                        updated_words += 1
-
-                for name in expected_categories:
-                    used_category_names.add(name)
-                    if name not in categories:
-                        category, _ = Category.objects.get_or_create(name=name)
-                        categories[name] = category
-                    _, link_created = WordCategory.objects.get_or_create(
-                        word=word,
-                        category=categories[name],
-                    )
-                    if link_created:
-                        created_links += 1
+            for card_batch in batches(cards, BATCH_SIZE):
+                new_count, update_count, link_count = seed_word_batch(card_batch, categories)
+                created_words += new_count
+                updated_words += update_count
+                created_links += link_count
 
         self.stdout.write(
             f"Seeded {len(cards)} cards from {source} across {len(used_category_names)} categories: "
