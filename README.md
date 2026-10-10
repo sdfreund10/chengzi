@@ -101,11 +101,17 @@ uv run ruff format .
 # Django shell
 uv run python manage.py shell
 
-# Seed HSK decks (local files under data/hsk/, gitignored)
+# Database migrations
+make makemigrations
+make migrate
+make showmigrations
+
+# Seed words and categories from prepped_cards.json (local file preferred)
 uv run python scripts/download_hsk.py
 uv run python scripts/build_card_data.py --levels 1,2,3
-# edit data/hsk/cards.json if needed
-uv run python manage.py seed_hsk
+# Prepare data/hsk/prepped_cards.json before seeding
+make seed-hsk
+# If the local file is unavailable, set HSK_PREPPED_CARDS_URL in .env
 
 # Create a superuser, then add the second account in /admin/
 uv run python manage.py createsuperuser
