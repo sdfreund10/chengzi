@@ -5,6 +5,7 @@ Filter out less useful cards, recategorize some cards, and add supporting data.
 Usage:
   uv run scripts/prep_cards.py --limit 100
   uv run scripts/prep_cards.py --workers 12
+  uv run scripts/prep_cards.py --rerun
   uv run scripts/prep_cards.py
 """
 
@@ -24,7 +25,7 @@ from typing import Any, TypedDict
 import dotenv
 import requests
 
-from hsk_categories import HSK_CATEGORIES
+from hsk_categories import STUDY_CATEGORIES
 
 dotenv.load_dotenv()
 
@@ -58,6 +59,11 @@ Favor the provided HSK meaning and only add details if necesssary.
 The example sentence should use words at the same level or easier than the given word.
 Try to use the provided HSK level as a guide for what words to use.
 All varients of the example sentence should be equivalent.
+
+**Category**
+Choose the single best-fitting topical study category from the allowed enum.
+Categories are shared across HSK levels; do not include the HSK level in the category.
+Use "Medical Chinese" for vocabulary about symptoms, diagnosis, treatment, and medical care.
 
 **should_exclude**
 Some words are given an alternative definition by the HSK curriculum that are not actually useful for
@@ -105,6 +111,7 @@ OUTPUT_SCHEMA = {
                 "category": {
                     "type": "string",
                     "description": "The primary study category for this card.",
+                    "enum": STUDY_CATEGORIES,
                 },
                 "exclude": {
                     "type": "boolean",
@@ -148,7 +155,7 @@ def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
                     {"role": "system", "content": ANALYSIS_PROMPT},
                     {"role": "user", "content": formatted_word},
                 ],
-                "response_format": category_output_schema(level),
+                "response_format": OUTPUT_SCHEMA,
                 "reasoning": {
                     "effort": "low",
                     "exclude": True,
@@ -181,22 +188,9 @@ def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
         "total_tokens": usage.get("total_tokens"),
     }
     analysis = json.loads(content)
+    if analysis.get("category") not in STUDY_CATEGORIES:
+        raise ValueError(f"Model returned an invalid category: {analysis.get('category')!r}")
     return analysis, metrics
-
-
-def category_output_schema(level: int) -> dict[str, Any]:
-    """Build the strict response schema with the card level's category allowlist."""
-    schema = copy.deepcopy(OUTPUT_SCHEMA)
-    category = schema["json_schema"]["schema"]["properties"]["category"]
-
-    categories = HSK_CATEGORIES.get(level)
-    if categories:
-        category["enum"] = categories
-    else:
-        category["type"] = "string"
-        category["description"] = "The primary semantic category the word belogs to for grouping related words. ex: 'food', 'family', 'basics'."
-
-    return schema
 
 
 def append_log(path: Path, entry: dict[str, Any]) -> None:
@@ -342,6 +336,11 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_LOG_DIR,
         help=f"Directory for per-run JSONL logs (default: {DEFAULT_LOG_DIR})",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Include cards that are already processed",
+    )
     args = parser.parse_args(argv)
 
     if args.workers < 1:
@@ -357,7 +356,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"Input not found: {in_path}")
 
     rows = load_rows(out_path)
-    done = {card_key(row) for row in rows}
+    done = {card_key(row) for row in rows} if not args.force else set()
     if done:
         print(f"resuming with {len(done)} cards already in {out_path}")
 
