@@ -12,19 +12,17 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypedDict
 
 import dotenv
 import requests
-
 from hsk_categories import STUDY_CATEGORIES
 
 dotenv.load_dotenv()
@@ -133,7 +131,7 @@ MODEL = "openai/gpt-6-luna"
 
 def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return (analysis, metrics) for one card."""
-    level = int(card["hsk_level"])
+    int(card["hsk_level"])
 
     formatted_word = f"""
         Simplified: {card["simplified"]}
@@ -174,7 +172,7 @@ def analyze_card(card: Card) -> tuple[dict[str, Any], dict[str, Any]]:
 
     usage = payload.get("usage") or {}
     metrics = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "hsk_level": card["hsk_level"],
         "simplified": card["simplified"],
         "chinese": card["chinese"],
@@ -370,7 +368,7 @@ def main(argv: list[str] | None = None) -> int:
                     break
         cards = limited
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     log_path = log_dir / f"prep_cards_{run_id}.jsonl"
     pending = [card for card in cards if card_key(card) not in done]
     total_cost, total_latency_ms = process_pending_cards(
