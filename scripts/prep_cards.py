@@ -3,7 +3,8 @@ Take data from data/hsk/cards.json and prep it for use in the app.
 Filter out less useful cards, recategorize some cards, and add supporting data.
 
 Usage:
-  uv run scripts/prep_cards.py --limit 7
+  uv run scripts/prep_cards.py --limit 100
+  uv run scripts/prep_cards.py --workers 12
   uv run scripts/prep_cards.py
 """
 
@@ -15,6 +16,7 @@ import json
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypedDict
@@ -250,6 +252,63 @@ def write_rows(path: Path, rows: list[dict[str, Any]]) -> None:
     path.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def process_pending_cards(
+    pending: list[Card],
+    rows: list[dict[str, Any]],
+    out_path: Path,
+    log_path: Path,
+    workers: int,
+) -> tuple[float, float]:
+    """Analyze pending cards concurrently and checkpoint each successful result."""
+    total_cost = 0.0
+    total_latency_ms = 0.0
+    failed_card: Card | None = None
+    failure: Exception | None = None
+    completed = 0
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(analyze_card, card): card for card in pending}
+        for future in as_completed(futures):
+            card = futures[future]
+            if future.cancelled():
+                continue
+
+            try:
+                analysis, metrics = future.result()
+            except Exception as exc:
+                if failure is None:
+                    failed_card = card
+                    failure = exc
+                    for other in futures:
+                        if other is not future:
+                            other.cancel()
+                continue
+
+            rows.append(prep_row(card, analysis))
+            # Keep completed cards resumable if the run is interrupted or fails.
+            write_rows(out_path, rows)
+            append_log(log_path, metrics)
+
+            cost = metrics.get("cost")
+            if isinstance(cost, (int, float)):
+                total_cost += float(cost)
+            total_latency_ms += float(metrics["latency_ms"])
+            completed += 1
+            print(
+                f"[{completed}/{len(pending)}] {card['simplified']} ({card['pinyin']}) "
+                f"{metrics['latency_ms']}ms cost={cost}"
+            )
+
+    if failure is not None and failed_card is not None:
+        raise SystemExit(
+            f"Failed to analyze {failed_card['simplified']} ({failed_card['pinyin']}, "
+            f"HSK {failed_card['hsk_level']}): {failure}. "
+            "Successful in-flight cards were saved; rerun to retry unfinished cards."
+        )
+
+    return total_cost, total_latency_ms
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -269,7 +328,13 @@ def main(argv: list[str] | None = None) -> int:
         "--limit",
         type=int,
         default=None,
-        help="Only process the first N cards (useful for smoke tests)",
+        help="Only process the first N unprocessed cards (useful for smoke tests)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=12,
+        help="Number of cards to analyze concurrently (default: 8)",
     )
     parser.add_argument(
         "--log-dir",
@@ -278,6 +343,9 @@ def main(argv: list[str] | None = None) -> int:
         help=f"Directory for per-run JSONL logs (default: {DEFAULT_LOG_DIR})",
     )
     args = parser.parse_args(argv)
+
+    if args.workers < 1:
+        raise SystemExit("--workers must be at least 1")
 
     if not OPENROUTER_API_KEY:
         raise SystemExit("OPENROUTER_API_KEY is not set")
@@ -288,36 +356,27 @@ def main(argv: list[str] | None = None) -> int:
     if not in_path.is_file():
         raise SystemExit(f"Input not found: {in_path}")
 
-    cards: list[Card] = json.loads(in_path.read_text(encoding="utf-8"))
-    if args.limit is not None:
-        cards = cards[: args.limit]
-
     rows = load_rows(out_path)
     done = {card_key(row) for row in rows}
     if done:
         print(f"resuming with {len(done)} cards already in {out_path}")
 
+    cards: list[Card] = json.loads(in_path.read_text(encoding="utf-8"))
+    if args.limit is not None:
+        limited = []
+        for card in cards:
+            if card_key(card) not in done:
+                limited.append(card)
+                if len(limited) >= args.limit:
+                    break
+        cards = limited
+
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     log_path = log_dir / f"prep_cards_{run_id}.jsonl"
     pending = [card for card in cards if card_key(card) not in done]
-    total_cost = 0.0
-    total_latency_ms = 0.0
-
-    for index, card in enumerate(pending, start=1):
-        analysis, metrics = analyze_card(card)
-        rows.append(prep_row(card, analysis))
-        # Rewrite after each card so a mid-run failure still leaves usable output.
-        write_rows(out_path, rows)
-        append_log(log_path, metrics)
-
-        cost = metrics.get("cost")
-        if isinstance(cost, (int, float)):
-            total_cost += float(cost)
-        total_latency_ms += float(metrics["latency_ms"])
-        print(
-            f"[{index}/{len(pending)}] {card['simplified']} ({card['pinyin']}) "
-            f"{metrics['latency_ms']}ms cost={cost}"
-        )
+    total_cost, total_latency_ms = process_pending_cards(
+        pending, rows, out_path, log_path, args.workers
+    )
 
     print(
         f"wrote {len(rows)} cards to {out_path} ({len(pending)} newly analyzed); "
