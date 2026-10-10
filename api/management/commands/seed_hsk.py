@@ -216,7 +216,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         path: Path = options["file"].expanduser().resolve()
-        url = options["url"] or os.getenv(REMOTE_CARDS_URL)
+        url = options["url"] or os.getenv("HSK_PREPPED_CARDS_URL", REMOTE_CARDS_URL)
         cards, source = load_cards(path, url)
 
         created_words = 0

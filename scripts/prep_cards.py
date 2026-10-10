@@ -21,11 +21,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypedDict
 
-import dotenv
 import requests
+from dotenv import load_dotenv
 from hsk_categories import STUDY_CATEGORIES
 
-dotenv.load_dotenv()
+load_dotenv()
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IN = ROOT / "data" / "hsk" / "cards.json"
@@ -337,7 +337,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Include cards that are already processed",
+        help="Re-analyze cards even if already in the output file (replaces matching rows)",
     )
     args = parser.parse_args(argv)
 
@@ -371,6 +371,17 @@ def main(argv: list[str] | None = None) -> int:
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     log_path = log_dir / f"prep_cards_{run_id}.jsonl"
     pending = [card for card in cards if card_key(card) not in done]
+
+    # --force re-analyzes pending keys: drop existing matches first so appends stay unique.
+    if args.force and pending:
+        pending_keys = {card_key(card) for card in pending}
+        before = len(rows)
+        rows = [row for row in rows if card_key(row) not in pending_keys]
+        removed = before - len(rows)
+        if removed:
+            print(f"force: removed {removed} existing row(s) for {len(pending_keys)} card(s)")
+            write_rows(out_path, rows)
+
     total_cost, total_latency_ms = process_pending_cards(
         pending, rows, out_path, log_path, args.workers
     )
