@@ -20,7 +20,7 @@ BATCH_SIZE = 100
 
 def category_name_for_level(level: int) -> str:
     if level == 7:
-        return "HSK 7-9"
+        return "HSK 7+"
     return f"HSK {level}"
 
 
@@ -118,7 +118,6 @@ def batches(items: list[Any], size: int):
     for start in range(0, len(items), size):
         yield items[start : start + size]
 
-
 def seed_word_batch(
     cards: list[dict[str, Any]], categories: dict[str, Category]
 ) -> tuple[int, int, int]:
@@ -147,6 +146,7 @@ def seed_word_batch(
             pinyin=key[1],
             simplified=row["simplified"],
             english_basic=row["english_basic"],
+            hsk_level=row["hsk_level"],
         )
         for key, row in cards_by_key.items()
         if key not in words_by_key
@@ -174,11 +174,16 @@ def seed_word_batch(
             if word.english_basic != row["english_basic"]:
                 word.english_basic = row["english_basic"]
                 changed = True
+            if word.hsk_level != row["hsk_level"]:
+                word.hsk_level = row["hsk_level"]
+                changed = True
             if changed:
                 updated_count += 1
                 updated.append(word)
     if updated:
-        Word.objects.bulk_update(updated, ["simplified", "english_basic"], batch_size=BATCH_SIZE)
+        Word.objects.bulk_update(
+            updated, ["simplified", "english_basic", "hsk_level"], batch_size=BATCH_SIZE
+        )
 
     word_ids = {key: words_by_key[key].id for key in cards_by_key}
     links_to_add = {
