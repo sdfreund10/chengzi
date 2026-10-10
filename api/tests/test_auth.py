@@ -166,7 +166,12 @@ def test_userword_fk_isolates_rows_per_user(user: User, other_user: User) -> Non
     """Model-level FK isolation only; API queryset scoping lands with deck endpoints."""
     from api.models import UserWord, Word
 
-    word = Word.objects.create(chinese="字", pinyin="zì", english_basic="character")
+    word = Word.objects.create(
+        chinese="字",
+        simplified="字",
+        pinyin="zì",
+        english_basic="character",
+    )
     UserWord.objects.create(user=user, word=word, mode=UserWord.Mode.ZH_TO_EN)
     UserWord.objects.create(user=other_user, word=word, mode=UserWord.Mode.ZH_TO_EN)
 
