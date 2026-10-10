@@ -91,7 +91,8 @@ def load_cards(path: Path, url: str | None) -> tuple[list[dict[str, Any]], str]:
 
     if not url:
         raise CommandError(
-            f"Cards file not found: {path}. Set {REMOTE_CARDS_URL} or pass --url to use a remote file."
+            f"Cards file not found: {path}. "
+            "Set HSK_PREPPED_CARDS_URL or pass --url to use a remote file."
         )
 
     try:
@@ -222,15 +223,9 @@ class Command(BaseCommand):
         created_words = 0
         updated_words = 0
         created_links = 0
-        used_category_names = {
-            name
-            for row in cards
-            for name in row["categories"]
-        }
+        used_category_names = {name for row in cards for name in row["categories"]}
         used_category_names.update(
-            category_name_for_level(row["hsk_level"])
-            for row in cards
-            if not row["exclude"]
+            category_name_for_level(row["hsk_level"]) for row in cards if not row["exclude"]
         )
 
         with transaction.atomic():
@@ -251,7 +246,9 @@ class Command(BaseCommand):
                 created_links += link_count
 
         self.stdout.write(
-            f"Seeded {len(cards)} cards from {source} across {len(used_category_names)} categories: "
-            f"created {created_words} words, updated {updated_words}, linked {created_links}."
+            f"Seeded {len(cards)} cards from {source} across "
+            f"{len(used_category_names)} categories: "
+            f"created {created_words} words, updated {updated_words}, "
+            f"linked {created_links}."
         )
         self.stdout.write(self.style.SUCCESS("Done."))

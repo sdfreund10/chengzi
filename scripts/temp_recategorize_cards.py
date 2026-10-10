@@ -14,13 +14,11 @@ import shutil
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import requests
 from dotenv import load_dotenv
-
 from hsk_categories import STUDY_CATEGORIES
 
 load_dotenv()
@@ -165,8 +163,18 @@ def process_cards(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--in", dest="in_path", type=Path, default=DEFAULT_IN)
-    parser.add_argument("--out", type=Path, default=None, help="Defaults to updating the input file")
-    parser.add_argument("--limit", type=int, default=None, help="Only recategorize the first N cards")
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Defaults to updating the input file",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Only recategorize the first N cards",
+    )
     parser.add_argument("--workers", type=int, default=12)
     args = parser.parse_args(argv)
 

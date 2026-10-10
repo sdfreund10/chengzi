@@ -64,9 +64,11 @@ Categories are shared across HSK levels; do not include the HSK level in the cat
 Use "Medical Chinese" for vocabulary about symptoms, diagnosis, treatment, and medical care.
 
 **should_exclude**
-Some words are given an alternative definition by the HSK curriculum that are not actually useful for
-a learner trying to achieve proficiency. Slang or archaic uses of a word should be excluded from the deck.
-Consider the provided HSK level and decide if the word is actually useful for a learner at that stage.
+Some words are given an alternative definition by the HSK curriculum that are not
+actually useful for a learner trying to achieve proficiency. Slang or archaic uses
+of a word should be excluded from the deck.
+Consider the provided HSK level and decide if the word is actually useful for a
+learner at that stage.
 They may still be included in other categories.
 """
 
