@@ -118,6 +118,7 @@ def batches(items: list[Any], size: int):
     for start in range(0, len(items), size):
         yield items[start : start + size]
 
+
 def seed_word_batch(
     cards: list[dict[str, Any]], categories: dict[str, Category]
 ) -> tuple[int, int, int]:
