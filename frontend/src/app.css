@@ -201,3 +201,142 @@ dd {
   outline: 2px solid color-mix(in srgb, var(--accent) 45%, white);
   outline-offset: 2px;
 }
+
+.list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.row {
+  appearance: none;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.row:hover,
+.row:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  outline: none;
+}
+
+.row-body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.row-title {
+  font-weight: 650;
+}
+
+.difficulty-grid {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+
+.difficulty-option {
+  appearance: none;
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.difficulty-option.selected {
+  border-color: var(--ink);
+  outline: 1px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.difficulty-option:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, white);
+  outline-offset: 2px;
+}
+
+.difficulty-label {
+  font-weight: 650;
+}
+
+.difficulty-detail {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.picker-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.building-status {
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+}
+
+.study-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.study-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.study-card {
+  min-height: 14rem;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.prompt {
+  margin: 0;
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+  line-height: 1.15;
+  font-weight: 650;
+  text-align: center;
+}
+
+.prompt.pinyin {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.95rem;
+}
