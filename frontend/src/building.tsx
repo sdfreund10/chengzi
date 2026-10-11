@@ -11,6 +11,7 @@ type BuildingProps = {
   category: Category
   difficulties: Difficulty[]
   onReady: (session: StudySession) => void
+  onEmpty: () => void
   onCancel: () => void
 }
 
@@ -18,6 +19,7 @@ export function Building({
   category,
   difficulties,
   onReady,
+  onEmpty,
   onCancel,
 }: BuildingProps) {
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +37,14 @@ export function Building({
         }
       } catch (err) {
         if (cancelled) return
+        if (
+          err instanceof ApiError &&
+          err.status === 400 &&
+          err.message === 'No cards match.'
+        ) {
+          onEmpty()
+          return
+        }
         const message =
           err instanceof ApiError && err.message
             ? err.message

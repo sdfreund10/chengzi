@@ -222,6 +222,14 @@ export function App() {
         category={category}
         difficulties={route.difficulties}
         onReady={setSession}
+        onEmpty={() =>
+          setSession({
+            category,
+            difficulties: route.difficulties,
+            total: 0,
+            cards: [],
+          })
+        }
         onCancel={() =>
           go({ name: 'session-new', categoryId: category.id }, { replace: true })
         }
