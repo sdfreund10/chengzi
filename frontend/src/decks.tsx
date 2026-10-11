@@ -1,12 +1,29 @@
 import { useState } from 'preact/hooks'
-import { ApiError, logout, type AuthUser } from './api'
+import { ApiError, logout, type AuthUser, type Category } from './api'
 
 type DecksProps = {
   user: AuthUser
+  categories: Category[] | null
+  categoriesError: string | null
   onSignedOut: () => void
+  onSelectCategory: (category: Category) => void
 }
 
-export function Decks({ user, onSignedOut }: DecksProps) {
+function wordCount(category: Category): number {
+  return (
+    category.beginner_count +
+    category.intermediate_count +
+    category.advanced_count
+  )
+}
+
+export function Decks({
+  user,
+  categories,
+  categoriesError,
+  onSignedOut,
+  onSelectCategory,
+}: DecksProps) {
   const [error, setError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
 
@@ -27,36 +44,58 @@ export function Decks({ user, onSignedOut }: DecksProps) {
     }
   }
 
+  const banner = error ?? categoriesError
+
   return (
     <main class="app">
-      <header class="app-header">
-        <div>
-          <p class="eyebrow">juzi</p>
-          <h1>Decks</h1>
-          <p class="lede">Pick a deck to practice. Deck list arrives with the next slice.</p>
-        </div>
-        <div class="session">
-          <p class="session-email">{user.email}</p>
-          <button
-            type="button"
-            class="btn ghost"
-            onClick={onSignOut}
-            disabled={signingOut}
-          >
-            {signingOut ? 'Signing out…' : 'Sign out'}
-          </button>
-          {error && (
-            <p class="error session-error" role="alert" aria-live="polite">
-              {error}
-            </p>
-          )}
-        </div>
-      </header>
+      <h1 class="title">Choose a deck</h1>
 
-      <section class="panel">
-        <h2>Coming soon</h2>
-        <p class="muted">Your decks will show up here once the deck-picker API lands.</p>
-      </section>
+      {banner && (
+        <p class="error" role="alert" aria-live="polite">
+          {banner}
+        </p>
+      )}
+
+      {categories === null ? (
+        <p class="subtitle">Loading decks…</p>
+      ) : categories.length === 0 ? (
+        <section class="panel">
+          <p>No decks yet. Seed vocabulary to get started.</p>
+        </section>
+      ) : (
+        <section class="list" aria-label="Decks">
+          {categories.map((category) => {
+            const total = wordCount(category)
+            return (
+              <button
+                key={category.id}
+                type="button"
+                class="row"
+                onClick={() => onSelectCategory(category)}
+              >
+                <span class="g">
+                  <b>{category.name}</b>
+                  <span class="s">
+                    {total === 1 ? '1 word' : `${total} words`}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </section>
+      )}
+
+      <footer class="session-footer">
+        <span class="session-email">{user.email}</span>
+        <button
+          type="button"
+          class="link-btn"
+          onClick={onSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? 'Signing out…' : 'Sign out'}
+        </button>
+      </footer>
     </main>
   )
 }
