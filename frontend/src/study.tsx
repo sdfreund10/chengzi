@@ -16,13 +16,12 @@ export function Study({ session, onExit }: StudyProps) {
   if (!card) {
     return (
       <main class="app">
-        <header>
-          <p class="eyebrow">juzi</p>
-          <h1>No cards</h1>
-        </header>
-        <button type="button" class="btn ghost" onClick={onExit}>
-          Back to decks
-        </button>
+        <h1 class="title">No cards</h1>
+        <div class="picker-actions">
+          <button type="button" class="cta" onClick={onExit}>
+            Back to decks
+          </button>
+        </div>
       </main>
     )
   }
@@ -31,25 +30,22 @@ export function Study({ session, onExit }: StudyProps) {
 
   return (
     <main class="app study">
-      <header class="study-top">
-        <div>
-          <p class="eyebrow">{session.category.name}</p>
-          <div class="study-meta">
+      <div class="study-shell">
+        <div class="study-top">
+          <div class="study-top-main">
             <span class="chip">{modeLabel}</span>
             <span class="muted">
               1 / {session.total}
             </span>
           </div>
+          <button type="button" class="text-btn" onClick={onExit}>
+            Exit
+          </button>
         </div>
-        <button type="button" class="btn ghost" onClick={onExit}>
-          Exit
-        </button>
-      </header>
 
-      <section class="study-card" aria-label="Study card">
         <p class="prompt zh pinyin">{card.prompt}</p>
-        <p class="hint muted">Tap anywhere to reveal</p>
-      </section>
+        <p class="hint">Tap anywhere to reveal</p>
+      </div>
     </main>
   )
 }

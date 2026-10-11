@@ -1,10 +1,15 @@
 import { useState } from 'preact/hooks'
 import type { Category, Difficulty } from './api'
 
-const OPTIONS: { id: Difficulty; label: string; detail: string }[] = [
-  { id: 'beginner', label: 'Beginner', detail: 'HSK 1–3' },
-  { id: 'intermediate', label: 'Intermediate', detail: 'HSK 4–5' },
-  { id: 'advanced', label: 'Advanced', detail: 'HSK 6+' },
+const OPTIONS: { id: Difficulty; label: string; detail: string; countKey: keyof Category }[] = [
+  { id: 'beginner', label: 'Beginner', detail: 'HSK 1–3', countKey: 'beginner_count' },
+  {
+    id: 'intermediate',
+    label: 'Intermediate',
+    detail: 'HSK 4–5',
+    countKey: 'intermediate_count',
+  },
+  { id: 'advanced', label: 'Advanced', detail: 'HSK 6+', countKey: 'advanced_count' },
 ]
 
 type DifficultyProps = {
@@ -35,22 +40,18 @@ export function DifficultyStep({ category, onBack, onContinue }: DifficultyProps
 
   return (
     <main class="app">
-      <header class="app-header">
-        <div>
-          <p class="eyebrow">juzi</p>
-          <h1>Difficulty</h1>
-          <p class="lede">{category.name}</p>
-        </div>
-        <button type="button" class="btn ghost" onClick={onBack}>
+      <div class="title-bar">
+        <h1 class="title">Difficulty</h1>
+        <button type="button" class="text-btn" onClick={onBack}>
           Back
         </button>
-      </header>
+      </div>
+      <p class="subtitle">{category.name}</p>
 
       <section class="difficulty-grid" aria-label="Difficulty levels">
         {OPTIONS.map((opt) => {
           const isSelected = selected.has(opt.id)
-          console.log(category)
-          const count = category[`${opt.id}_count`]
+          const count = category[opt.countKey]
           return (
             <button
               key={opt.id}
@@ -59,9 +60,13 @@ export function DifficultyStep({ category, onBack, onContinue }: DifficultyProps
               aria-pressed={isSelected}
               onClick={() => toggle(opt.id)}
             >
-              <span class="difficulty-label">{opt.label}</span>
-              <span class="difficulty-detail">{opt.detail}</span>
-              {count ? <span class="difficulty-count">{count} words</span> : null}
+              <span class="g">
+                <b>{opt.label}</b>
+                <span class="s">
+                  {opt.detail}
+                  {typeof count === 'number' ? ` · ${count} words` : ''}
+                </span>
+              </span>
             </button>
           )
         })}
@@ -70,7 +75,7 @@ export function DifficultyStep({ category, onBack, onContinue }: DifficultyProps
       <div class="picker-actions">
         <button
           type="button"
-          class="btn"
+          class="cta"
           disabled={selected.size === 0}
           onClick={submit}
         >

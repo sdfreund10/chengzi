@@ -13,6 +13,14 @@ type DecksProps = {
   onSelectCategory: (category: Category) => void
 }
 
+function wordCount(category: Category): number {
+  return (
+    category.beginner_count +
+    category.intermediate_count +
+    category.advanced_count
+  )
+}
+
 export function Decks({ user, onSignedOut, onSelectCategory }: DecksProps) {
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -66,24 +74,7 @@ export function Decks({ user, onSignedOut, onSelectCategory }: DecksProps) {
 
   return (
     <main class="app">
-      <header class="app-header">
-        <div>
-          <p class="eyebrow">juzi</p>
-          <h1>Choose a deck</h1>
-          <p class="lede">Pick a topic, then set difficulty.</p>
-        </div>
-        <div class="session">
-          <p class="session-email">{user.email}</p>
-          <button
-            type="button"
-            class="btn ghost"
-            onClick={onSignOut}
-            disabled={signingOut}
-          >
-            {signingOut ? 'Signing out…' : 'Sign out'}
-          </button>
-        </div>
-      </header>
+      <h1 class="title">Choose a deck</h1>
 
       {error && (
         <p class="error" role="alert" aria-live="polite">
@@ -92,27 +83,45 @@ export function Decks({ user, onSignedOut, onSelectCategory }: DecksProps) {
       )}
 
       {categories === null ? (
-        <p class="muted">Loading decks…</p>
+        <p class="subtitle">Loading decks…</p>
       ) : categories.length === 0 ? (
         <section class="panel">
-          <p class="muted">No decks yet. Seed vocabulary to get started.</p>
+          <p>No decks yet. Seed vocabulary to get started.</p>
         </section>
       ) : (
         <section class="list" aria-label="Decks">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              class="row"
-              onClick={() => onSelectCategory(category)}
-            >
-              <span class="row-body">
-                <span class="row-title">{category.name}</span>
-              </span>
-            </button>
-          ))}
+          {categories.map((category) => {
+            const total = wordCount(category)
+            return (
+              <button
+                key={category.id}
+                type="button"
+                class="row"
+                onClick={() => onSelectCategory(category)}
+              >
+                <span class="g">
+                  <b>{category.name}</b>
+                  <span class="s">
+                    {total === 1 ? '1 word' : `${total} words`}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
         </section>
       )}
+
+      <footer class="session-footer">
+        <span class="session-email">{user.email}</span>
+        <button
+          type="button"
+          class="link-btn"
+          onClick={onSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? 'Signing out…' : 'Sign out'}
+        </button>
+      </footer>
     </main>
   )
 }

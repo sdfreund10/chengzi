@@ -13,12 +13,13 @@ from api.services.sessions import EmptySessionError, StudySession, build_session
 
 
 def _category_payload(category: Category) -> dict:
+    # Counts are annotated on list queries; session create may pass a bare Category.
     return {
         "id": category.id,
         "name": category.name,
-        "beginner_count": category.beginner_count,
-        "intermediate_count": category.intermediate_count,
-        "advanced_count": category.advanced_count,
+        "beginner_count": getattr(category, "beginner_count", 0),
+        "intermediate_count": getattr(category, "intermediate_count", 0),
+        "advanced_count": getattr(category, "advanced_count", 0),
     }
 
 

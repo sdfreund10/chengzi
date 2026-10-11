@@ -74,7 +74,7 @@ export function App() {
   if (screen === 'loading') {
     return (
       <main class="app">
-        <p class="muted">Loading…</p>
+        <p class="building-status">Loading…</p>
       </main>
     )
   }

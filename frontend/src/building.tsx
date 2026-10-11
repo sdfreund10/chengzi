@@ -53,21 +53,20 @@ export function Building({
 
   return (
     <main class="app">
-      <header>
-        <p class="eyebrow">juzi</p>
-        <h1>Building deck</h1>
-        <p class="lede">{category.name}</p>
-      </header>
+      <h1 class="title">Building deck</h1>
+      <p class="subtitle">{category.name}</p>
 
       {error ? (
-        <section class="panel">
+        <>
           <p class="error" role="alert" aria-live="polite">
             {error}
           </p>
-          <button type="button" class="btn ghost" onClick={onCancel}>
-            Back
-          </button>
-        </section>
+          <div class="picker-actions">
+            <button type="button" class="cta" onClick={onCancel}>
+              Back
+            </button>
+          </div>
+        </>
       ) : (
         <p class="building-status" aria-live="polite">
           Gathering cards…
