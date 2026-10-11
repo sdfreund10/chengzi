@@ -1,14 +1,10 @@
-import { useEffect, useState } from 'preact/hooks'
-import {
-  ApiError,
-  fetchCategories,
-  logout,
-  type AuthUser,
-  type Category,
-} from './api'
+import { useState } from 'preact/hooks'
+import { ApiError, logout, type AuthUser, type Category } from './api'
 
 type DecksProps = {
   user: AuthUser
+  categories: Category[] | null
+  categoriesError: string | null
   onSignedOut: () => void
   onSelectCategory: (category: Category) => void
 }
@@ -21,39 +17,15 @@ function wordCount(category: Category): number {
   )
 }
 
-export function Decks({ user, onSignedOut, onSelectCategory }: DecksProps) {
-  const [categories, setCategories] = useState<Category[] | null>(null)
+export function Decks({
+  user,
+  categories,
+  categoriesError,
+  onSignedOut,
+  onSelectCategory,
+}: DecksProps) {
   const [error, setError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      try {
-        const rows = await fetchCategories()
-        if (!cancelled) {
-          setCategories(rows)
-          setError(null)
-        }
-      } catch (err) {
-        if (cancelled) return
-        if (err instanceof ApiError && err.status === 401) {
-          onSignedOut()
-          return
-        }
-        setError('Could not load decks. Try again.')
-        setCategories([])
-      }
-    }
-
-    void load()
-    return () => {
-      cancelled = true
-    }
-    // Load once on mount; onSignedOut is stable enough for this shell.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   async function onSignOut() {
     setError(null)
@@ -72,13 +44,15 @@ export function Decks({ user, onSignedOut, onSelectCategory }: DecksProps) {
     }
   }
 
+  const banner = error ?? categoriesError
+
   return (
     <main class="app">
       <h1 class="title">Choose a deck</h1>
 
-      {error && (
+      {banner && (
         <p class="error" role="alert" aria-live="polite">
-          {error}
+          {banner}
         </p>
       )}
 
