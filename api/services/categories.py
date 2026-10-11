@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from api.models import Category
 from django.db.models import Count, Q
+
+from api.models import Category
 
 HSK_CATEGORY_PREFIX = "HSK "
 
